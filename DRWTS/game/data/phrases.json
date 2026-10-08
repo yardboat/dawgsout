@@ -5,6 +5,7 @@
   ],
   "tunables": {
     "player_speed": 5.0,
+    "cam_zoom": 1.45,
     "joby_ticks": [2.0, 2.6, 3.2, 3.8, 4.4, 4.7],
     "catch_distance": 0.6,
     "token_min_dist_player": 6,

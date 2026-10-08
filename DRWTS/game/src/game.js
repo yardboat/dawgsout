@@ -4,7 +4,9 @@ import { Player } from './player.js';
 import { Joby } from './joby.js';
 import { Words } from './words.js';
 import { Camera, drawWorld, drawOverlay, drawTokens, drawPlayer, drawJoby } from './render.js';
-import { drawHUD, drawFooter, drawStick, drawCard, drawBubble, hit } from './ui.js';
+import { drawHUDScreen, drawVignette, drawStick, drawCard, drawBubble, hit } from './ui.js';
+import { FX } from './fx.js';
+import { sfx } from './audio.js';
 import { drawPortrait, drawMelt } from './cutscenes.js';
 
 const CORNERS = [[1, 2], [18, 2], [1, 27], [18, 27]];
@@ -22,6 +24,9 @@ export class Game {
     this.cam = new Camera(this.maze.W * this.maze.T, this.maze.H * this.maze.T);
     this.time = 0;
     this.toast = null;
+    this.fx = new FX();
+    this.vw = 400; this.vh = 800; this.safeTop = 0;
+    this.danger = 0; this.beat = 0; this.pulse = 0; this.slots = [];
     this.newRun();
     this.set('title');
   }
@@ -33,7 +38,7 @@ export class Game {
     this.player = new Player(this.maze, ...L.spawns.player, this.tun.player_speed, this.input);
     this.joby = new Joby(this.maze, ...L.spawns.joby, this.tun.joby_ticks, this.player);
     this.words = new Words(this.maze, this.phrases[0], L.word_spawn_candidates, [L.spawns.player], this.tun);
-    this.cam.home();
+    this.fx.reset(); this.danger = 0; this.stun = 0; this.lastJobyTile = '';
   }
 
   set(state) { this.state = state; this.st = 0; this.button = null; }
@@ -51,6 +56,8 @@ export class Game {
 
   update(dt) {
     this.time += dt; this.st += dt;
+    this.fx.update(dt);
+    this.pulse = Math.max(0, this.pulse - dt * 3);
     if (this.toast && (this.toast.t -= dt) <= 0) this.toast = null;
     const taps = this.input.takeTaps();
     const tapped = taps.length > 0;
@@ -63,11 +70,19 @@ export class Game {
         break;
 
       case 'play': {
-        this.player.update(dt);
+        this.follow(dt);
+        if (this.stun > 0) this.stun -= dt; else this.player.update(dt);
         this.joby.update(dt);
         this.words.update(dt);
+        this.jobyTrail();
+        this.updateDanger(dt);
         const ev = this.words.check(this.maze, [this.player.x, this.player.y], this.tun.catch_distance);
         if (ev === 'collect') {
+          const tk = this.words.tokens.find(k => k.index === this.words.next - 1), T = this.maze.T;
+          const wx = (tk.c + 0.5) * T, wy = (tk.r + 0.5) * T;
+          this.fx.burst(wx, wy); this.fx.kick(7); sfx.collect(tk.index);
+          const [sx, sy] = worldToScreen(this.cam, wx, wy);
+          this.fx.fly(tk.word, sx, sy, tk.index);
           if (this.phase === 1 && this.joby.awake) this.joby.speedUp();
           if (this.words.done) {
             if (this.phase === 0) { this.set('reveal'); this.revealWasAwake = this.joby.awake; }
@@ -75,17 +90,22 @@ export class Game {
             return;
           }
         } else if (ev === 'wrong') {
+          const tk = this.words.tokens.find(k => k.flash > 0.55), T = this.maze.T;
+          if (tk) this.fx.ring((tk.c + 0.5) * T, (tk.r + 0.5) * T);
+          this.fx.kick(12); this.stun = 0.3; sfx.wrong();
           if (!this.joby.awake) { this.wakeJoby(); this.say('WRONG WORD! NASTY JOBY WOKE UP', '#ff4a4a'); }
           else { this.joby.speedUp(); this.say('WRONG WORD! JOBY SPEEDS UP', '#ff4a4a'); }
         }
         if (this.joby.awake && this.maze.dist([this.player.x, this.player.y], [this.joby.x, this.joby.y]) < this.tun.catch_distance) {
           this.caughtLine = this.lines.caught[(Math.random() * this.lines.caught.length) | 0];
+          this.fx.kick(16); sfx.thump(1.2); this.danger = 0;
           this.set('caught');
         }
         break;
       }
 
       case 'reveal':
+        this.follow(dt);
         if (this.st > 0.6 && tapped || this.st > 3) {
           this.phase = 1;
           if (!this.joby.awake) this.wakeJoby();
@@ -111,6 +131,7 @@ export class Game {
       }
 
       case 'win':
+        this.fx.update(0);
         for (const t of taps) if (t.key || hit(this.button, t)) { this.newRun(); this.set('play'); }
         break;
     }
@@ -120,17 +141,35 @@ export class Game {
     const T = this.maze.T;
     ctx.fillStyle = '#1d2240'; ctx.fillRect(0, 0, w, h);
 
+    this.vw = w; this.vh = h;
+    const [ox, oy] = this.fx.shakeOffset();
     ctx.save();
+    ctx.translate(ox, oy);
     this.cam.apply(ctx, w, h);
     drawWorld(ctx, this.maze, this.debug, this.bg);
+    this.fx.drawPuddles(ctx);
     drawTokens(ctx, this.maze, this.words, this.time);
-    drawPlayer(ctx, this.maze, this.player, this.art, this.time);
-    if (this.joby.awake && this.state !== 'wincut' && this.state !== 'win') drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time);
+    const jobyVisible = this.joby.awake && this.state !== 'wincut' && this.state !== 'win';
+    const actors = [[this.player.y, () => drawPlayer(ctx, this.maze, this.player, this.art, this.time)]];
+    if (jobyVisible) actors.push([this.joby.y, () => drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time)]);
+    actors.sort((a, b) => a[0] - b[0]).forEach(a => a[1]());
     drawOverlay(ctx, this.maze, this.bg);
-    const jInfo = this.joby.awake ? `JOBY SPEED ${this.joby.speed.toFixed(1)}` : '';
-    drawHUD(ctx, this.maze, this.phrases[this.phase], this.words.next, this.phase + 1, jInfo);
-    drawFooter(ctx, this.maze, this.debug ? 'DEBUG · click tile = toggle · E = export · J = wake · N = next word' : 'swipe or drag to move');
+    this.fx.drawTop(ctx);
     ctx.restore();
+
+    if (this.state === 'play' || this.state === 'caught') drawVignette(ctx, w, h, this.danger * (0.45 + 0.25 * this.pulse));
+
+    const jInfo = this.debug && this.joby.awake ? `JOBY ${this.joby.speed.toFixed(1)}` : '';
+    const u10 = Math.min(w, h * 0.66) / 10;
+    if (this.state !== 'title') {
+      this.slots = drawHUDScreen(ctx, w, h, this.safeTop, this.phrases[this.phase], this.words.next - this.fx.flying(), this.phase + 1, jInfo);
+      this.fx.drawFlyers(ctx, this.slots, u10);
+    }
+    if (this.state === 'play' && (this.debug || (this.phase === 0 && this.st < 5))) {
+      ctx.fillStyle = 'rgba(18,22,48,.7)'; ctx.fillRect(0, h - u10 * 1.1, w, u10 * 1.1);
+      ctx.fillStyle = '#f4e9c6'; ctx.font = `600 ${u10 * 0.3}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(this.debug ? 'DEBUG · click tile = toggle · E export · J wake · N next' : 'swipe or drag anywhere to steer', w / 2, h - u10 * 0.55, w * 0.94);
+    }
 
     if (this.state === 'play') drawStick(ctx, this.input.stick);
 
@@ -139,7 +178,7 @@ export class Game {
       const u = Math.min(w, h * 0.66) / 10;
       ctx.font = `900 ${u * 0.5}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = 'rgba(0,0,0,.6)'; const tw = Math.min(ctx.measureText(this.toast.text).width, w * 0.92) + u;
-      const ty = worldToScreen(this.cam, 0, (this.maze.H - 1.6) * T)[1];
+      const ty = this.safeTop + u * 2.1;
       ctx.fillRect(w / 2 - tw / 2, ty - u * 0.45, tw, u * 0.9);
       ctx.fillStyle = this.toast.color; ctx.fillText(this.toast.text, w / 2, ty, w * 0.92);
       ctx.globalAlpha = 1;
@@ -153,6 +192,7 @@ export class Game {
         drawCard(ctx, w, h, { title: 'DAWGS OUT', lines: ['Grab the words of the chant in order.', 'Wrong word wakes up Nasty Joby.', 'Swipe / drag (or arrow keys) to move.'], button: 'TAP TO PLAY', image: this.art.front });
         break;
       case 'reveal':
+        this.follow(dt);
         drawCard(ctx, w, h, { title: 'NASTY JOBY IS OUT', lines: ['DAWGS RISE WITH THE SUN ✓', 'Now finish the second chant', 'before Joby gets you.'], color: '#ff4a4a', dim: 0.75 });
         drawPortrait(ctx, w / 2, h * 0.17, u * 0.32);
         break;
@@ -174,6 +214,35 @@ export class Game {
       case 'win':
         this.button = drawCard(ctx, w, h, { title: 'DAWGS OUT!', lines: ['TITS OUT FOR THE DAWGS ✓', 'Nasty Joby has melted.'], button: 'PLAY AGAIN', dim: 0.85, image: this.art.win });
         break;
+    }
+  }
+
+  // Camera glides with the dawg, zoomed in, clamped to the map edges.
+  follow(dt) {
+    const T = this.maze.T, WW = this.maze.W * T, WH = this.maze.H * T;
+    const Z = this.tun.cam_zoom || 1.45, s = Math.min(this.vw / WW, this.vh / WH) * Z;
+    const hw = this.vw / (2 * s), hh = this.vh / (2 * s);
+    const clamp = (v, lo, hi) => lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v));
+    const fx = clamp((this.player.x + 0.5) * T, hw, WW - hw), fy = clamp((this.player.y + 0.5) * T, hh - 1.2 * T, WH - hh);
+    this.cam.ease(fx, fy, Z, Math.min(1, dt * 5));
+  }
+
+  jobyTrail() {
+    if (!this.joby.awake) return;
+    const key = this.joby.c + ',' + this.joby.r;
+    if (key !== this.lastJobyTile) { this.lastJobyTile = key; const T = this.maze.T; this.fx.puddle((this.joby.c + 0.5) * T, (this.joby.r + 0.85) * T); }
+  }
+
+  updateDanger(dt) {
+    let target = 0;
+    if (this.joby.awake) {
+      const d = this.maze.pathLen(this.player.tile(), this.joby.tile());
+      target = Math.max(0, Math.min(1, (9 - d) / 7));
+    }
+    this.danger += (target - this.danger) * Math.min(1, dt * 4);
+    if (this.danger > 0.05) {
+      this.beat -= dt;
+      if (this.beat <= 0) { this.beat = 1.1 - 0.72 * this.danger; this.pulse = 1; sfx.thump(0.4 + 0.6 * this.danger); }
     }
   }
 

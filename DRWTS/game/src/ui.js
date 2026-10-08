@@ -60,3 +60,32 @@ export function drawBubble(ctx, w, h, text, ax, ay) {
 }
 
 export function hit(r, t) { return r && t.x >= r.x && t.x <= r.x + r.w && t.y >= r.y && t.y <= r.y + r.h; }
+
+// Screen-space HUD (stays put while the camera follows). Returns slot rects for flying words.
+export function drawHUDScreen(ctx, w, h, top, phrase, shown, phaseNum, info) {
+  const u = Math.min(w, h * 0.66) / 10, n = phrase.length;
+  const pad = u * 0.3, gap = u * 0.12, sh = u * 0.85, sw = Math.min((w - pad * 2 - gap * (n - 1)) / n, u * 2.6);
+  const total = sw * n + gap * (n - 1), x0 = (w - total) / 2, y = top + u * 0.25;
+  const g = ctx.createLinearGradient(0, 0, 0, y + sh + u * 0.9);
+  g.addColorStop(0, 'rgba(18,22,48,.92)'); g.addColorStop(0.75, 'rgba(18,22,48,.75)'); g.addColorStop(1, 'rgba(18,22,48,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, y + sh + u * 0.9);
+  const slots = [];
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < n; i++) {
+    const x = x0 + i * (sw + gap); slots.push({ x, y, w: sw, h: sh });
+    roundRect(ctx, x, y, sw, sh, 8);
+    ctx.fillStyle = i < shown ? '#ffd23a' : 'rgba(255,255,255,.08)'; ctx.fill();
+    ctx.strokeStyle = i === shown ? '#ffd23a' : 'rgba(255,255,255,.3)'; ctx.lineWidth = 2; ctx.stroke();
+    if (i < shown) { ctx.fillStyle = '#1b1b1b'; ctx.font = `900 ${u * 0.36}px system-ui,sans-serif`; ctx.fillText(phrase[i], x + sw / 2, y + sh / 2 + 1, sw - 6); }
+  }
+  ctx.fillStyle = 'rgba(244,233,198,.8)'; ctx.font = `700 ${u * 0.26}px system-ui,sans-serif`;
+  ctx.fillText(`PHRASE ${phaseNum} of 2` + (info ? `  ·  ${info}` : ''), w / 2, y + sh + u * 0.32);
+  return slots;
+}
+
+export function drawVignette(ctx, w, h, a) {
+  if (a <= 0.01) return;
+  const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.hypot(w, h) * 0.55);
+  g.addColorStop(0, 'rgba(200,0,0,0)'); g.addColorStop(1, `rgba(200,0,0,${a})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+}

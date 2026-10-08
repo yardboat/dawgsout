@@ -23,7 +23,6 @@ export function drawWorld(ctx, maze, debug, bg) {
   if (bg) {
     ctx.drawImage(bg, 0, 0, maze.W * T, maze.H * T);
     drawSigns(ctx, maze);
-    ctx.fillStyle = 'rgba(29,34,64,.88)'; ctx.fillRect(0, 0, maze.W * T, 1.9 * T);
     if (debug) {
       ctx.fillStyle = 'rgba(0,160,255,.28)';
       for (let r = 0; r < maze.H; r++) for (let c = 0; c < maze.W; c++) if (maze.g[r][c] !== '#') ctx.fillRect(c * T, r * T, T, T);
