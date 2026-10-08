@@ -9,6 +9,7 @@ import { FX } from './fx.js';
 import { Ambient } from './ambient.js';
 import { sfx } from './audio.js';
 import { drawPortrait, drawMelt } from './cutscenes.js';
+import { ComicReveal } from './comic.js';
 
 const CORNERS = [[1, 2], [18, 2], [1, 27], [18, 27]];
 
@@ -28,7 +29,7 @@ export class Game {
     this.fx = new FX();
     this.amb = new Ambient(this.maze);
     this.vw = 400; this.vh = 800; this.safeTop = 0;
-    this.danger = 0; this.beat = 0; this.pulse = 0; this.slots = [];
+    this.danger = 0; this.beat = 0; this.pulse = 0; this.slots = []; this.wipe = 0;
     this.newRun();
     this.set('title');
   }
@@ -61,6 +62,7 @@ export class Game {
     this.fx.update(dt);
     this.amb.update(dt);
     this.pulse = Math.max(0, this.pulse - dt * 3);
+    if (this.wipe > 0) this.wipe -= dt;
     if (this.toast && (this.toast.t -= dt) <= 0) this.toast = null;
     const taps = this.input.takeTaps();
     const tapped = taps.length > 0;
@@ -93,7 +95,7 @@ export class Game {
           this.fx.fly(tk.word, sx, sy, tk.index);
           if (this.phase === 1 && this.joby.awake) this.joby.speedUp();
           if (this.words.done) {
-            if (this.phase === 0) { this.set('reveal'); this.revealWasAwake = this.joby.awake; }
+            if (this.phase === 0) { this.set('reveal'); this.comic = new ComicReveal(this.art, this.lines); }
             else this.set('wincut');
             return;
           }
@@ -114,7 +116,10 @@ export class Game {
 
       case 'reveal':
         this.follow(dt);
-        if (this.st > 0.6 && tapped || this.st > 3) {
+        this.comic.update(dt);
+        if (tapped) this.comic.skip();
+        if (this.comic.done) {
+          this.wipe = 0.5;
           this.phase = 1;
           if (!this.joby.awake) this.wakeJoby();
           const L = this.maze.level;
@@ -198,14 +203,18 @@ export class Game {
     const js = () => this.cam.toWorld ? worldToScreen(this.cam, (this.joby.x + 0.5) * T, (this.joby.y + 0.5) * T) : [w / 2, h / 2];
     const u = Math.min(w, h * 0.66);
 
+    if (this.wipe > 0 && this.state === 'play') {
+      const k = this.wipe / 0.5, edge = (1 - k) * (w + h);
+      ctx.fillStyle = '#f3e7cb'; ctx.beginPath(); ctx.moveTo(edge, 0); ctx.lineTo(w + h, 0); ctx.lineTo(w + h, h); ctx.lineTo(edge - h, h); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#1d140e'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(edge, 0); ctx.lineTo(edge - h, h); ctx.stroke();
+    }
+
     switch (this.state) {
       case 'title':
         drawCard(ctx, w, h, { title: 'DAWGS OUT', lines: ['Grab the words of the chant in order.', 'Wrong word wakes up Nasty Joby.', 'Swipe / drag (or arrow keys) to move.'], button: 'TAP TO PLAY', image: this.art.front });
         break;
       case 'reveal':
-        this.follow(dt);
-        drawCard(ctx, w, h, { title: 'NASTY JOBY IS OUT', lines: ['DAWGS RISE WITH THE SUN ✓', 'Now finish the second chant', 'before Joby gets you.'], color: '#ff4a4a', dim: 0.75 });
-        drawPortrait(ctx, w / 2, h * 0.17, u * 0.32);
+        this.comic.draw(ctx, w, h);
         break;
       case 'caught': {
         const [sx, sy] = js();

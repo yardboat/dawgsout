@@ -17,5 +17,6 @@ export const sfx = {
   },
   collect(i) { const f = 520 * Math.pow(1.19, i); this.tone(f, 0.12, 'triangle', 0.22); setTimeout(() => this.tone(f * 1.5, 0.16, 'triangle', 0.18), 70); },
   wrong() { this.tone(160, 0.28, 'sawtooth', 0.14, 0.5); },
+  glug() { this.tone(180, 0.16, 'sine', 0.3, 0.45); setTimeout(() => this.tone(120, 0.12, 'sine', 0.2, 0.6), 60); },
   thump(v = 1) { this.tone(70, 0.12, 'sine', 0.5 * v, 0.6); setTimeout(() => this.tone(58, 0.14, 'sine', 0.38 * v, 0.6), 140); },
 };
