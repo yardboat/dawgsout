@@ -3,7 +3,7 @@ const CONFETTI = ['#ffd23a', '#ba0c2f', '#ffffff', '#1b1b1b', '#ff8a3d'];
 
 export class FX {
   constructor() { this.reset(); }
-  reset() { this.parts = []; this.rings = []; this.flyers = []; this.puddles = []; this.shake = 0; }
+  reset() { this.notes = []; this.parts = []; this.rings = []; this.flyers = []; this.puddles = []; this.shake = 0; }
 
   burst(x, y, n = 26, colors = CONFETTI) {
     for (let i = 0; i < n; i++) {
@@ -20,6 +20,7 @@ export class FX {
       bubbles: Array.from({ length: 4 }, () => [(Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 0.8, 2 + Math.random() * 3]) });
     if (this.puddles.length > 40) this.puddles.shift();
   }
+  note(x, y) { this.notes = this.notes || []; this.notes.push({ x, y, t: 0, life: 1.4, ch: Math.random() < 0.5 ? '♪' : '♫', ph: Math.random() * 6 }); }
   kick(amount) { this.shake = Math.max(this.shake, amount); }
   flying() { return this.flyers.length; }
 
@@ -33,6 +34,7 @@ export class FX {
     for (const p of this.puddles) p.t += dt;
     this.puddles = this.puddles.filter(p => p.t < p.life);
     this.shake = Math.max(0, this.shake - dt * 40);
+    if (this.notes) { for (const n of this.notes) { n.t += dt; n.y -= 40 * dt; n.x += Math.sin(n.t * 5 + n.ph) * 20 * dt; } this.notes = this.notes.filter(n => n.t < n.life); }
   }
 
   shakeOffset() { const s = this.shake; return s ? [(Math.random() - 0.5) * s, (Math.random() - 0.5) * s] : [0, 0]; }
@@ -50,6 +52,11 @@ export class FX {
   }
 
   drawTop(ctx) {
+    if (this.notes) for (const n of this.notes) {
+      ctx.globalAlpha = Math.min(1, (n.life - n.t) * 2); ctx.font = '900 30px system-ui,sans-serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 4; ctx.strokeStyle = '#1b1b1b'; ctx.strokeText(n.ch, n.x, n.y); ctx.fillStyle = '#ff3fa4'; ctx.fillText(n.ch, n.x, n.y);
+    }
+    ctx.globalAlpha = 1;
     for (const r of this.rings) {
       const k = r.t / r.life;
       ctx.strokeStyle = r.color; ctx.globalAlpha = 1 - k; ctx.lineWidth = 10 * (1 - k) + 2;

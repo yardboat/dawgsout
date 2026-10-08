@@ -24,6 +24,7 @@ export class Actor {
     }
     for (let guard = 0; d > 1e-9 && guard < 8; guard++) {
       if (this.t === 0) {
+        if (this.atCenter && this.atCenter()) { this.dir = STOP; return; }
         const nd = this.choose();
         if (nd && this.m.open(this.c + nd.dx, this.r + nd.dy)) this.dir = nd;
         else if (!this.m.open(this.c + this.dir.dx, this.r + this.dir.dy)) this.dir = STOP;

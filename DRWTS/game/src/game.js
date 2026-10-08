@@ -42,6 +42,9 @@ export class Game {
     this.joby = new Joby(this.maze, ...L.spawns.joby, this.tun.joby_ticks, this.player);
     this.words = new Words(this.maze, this.phrases[0], L.word_spawn_candidates, [L.spawns.player], this.tun);
     this.fx.reset(); this.danger = 0; this.stun = 0; this.lastJobyTile = '';
+    this.hideout = (L.landmarks.find(l => l.hideout) || {}).hideout || null;
+    this.hidden = 0; this.hideCd = 0; this.grace = 0;
+    this.player.atCenter = () => this.tryEnterHideout();
   }
 
   set(state) { this.state = state; this.st = 0; this.button = null; }
@@ -76,6 +79,15 @@ export class Game {
 
       case 'play': {
         this.follow(dt);
+        if (this.hideCd > 0) this.hideCd -= dt;
+        if (this.grace > 0) this.grace -= dt;
+        if (this.hidden > 0) {
+          this.hidden -= dt;
+          if (this.hidden <= 0 || (this.input.want && this.input.want.dy === -1 && this.hidden < this.hideout.duration - 0.4)) this.leaveHideout();
+          this.joby.update(dt); this.words.update(dt); this.jobyTrail(); this.danger = Math.max(0, this.danger - dt * 2);
+          if (Math.random() < dt * 6) { const T = this.maze.T, [dc, dr] = this.hideout.door; this.fx.note((dc + 0.5) * T + (Math.random() - 0.5) * T * 1.6, (dr + 1.2) * T); }
+          break;
+        }
         if (this.stun > 0) this.stun -= dt; else {
           const before = this.player.dir;
           this.player.update(dt);
@@ -106,7 +118,7 @@ export class Game {
           if (!this.joby.awake) { this.wakeJoby(); this.say('WRONG WORD! NASTY JOBY WOKE UP', '#ff4a4a'); }
           else { this.joby.speedUp(); this.say('WRONG WORD! JOBY SPEEDS UP', '#ff4a4a'); }
         }
-        if (this.joby.awake && this.maze.dist([this.player.x, this.player.y], [this.joby.x, this.joby.y]) < this.tun.catch_distance) {
+        if (this.joby.awake && this.grace <= 0 && this.maze.dist([this.player.x, this.player.y], [this.joby.x, this.joby.y]) < this.tun.catch_distance) {
           this.caughtLine = this.lines.caught[(Math.random() * this.lines.caught.length) | 0];
           this.fx.kick(16); sfx.thump(1.2); this.danger = 0;
           this.set('caught');
@@ -161,12 +173,14 @@ export class Game {
     this.cam.apply(ctx, w, h);
     drawWorld(ctx, this.maze, this.debug, this.bg);
     this.fx.drawPuddles(ctx);
+    if (this.hideout && this.state !== 'title') drawHideout(ctx, this.maze, this.hideout, this, this.time);
     this.amb.drawGround(ctx);
     drawTokens(ctx, this.maze, this.words, this.time);
     const jobyVisible = this.joby.awake && this.state !== 'wincut' && this.state !== 'win';
     const occ = this.art.occluder;
-    const actors = [[this.player.y, () => { drawPlayer(ctx, this.maze, this.player, this.art, this.time); drawOccluder(ctx, occ, this.maze, this.player.x, this.player.y, 0.95); }]];
-    if (jobyVisible) actors.push([this.joby.y, () => { drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time); drawOccluder(ctx, occ, this.maze, this.joby.x, this.joby.y, 0.7); }]);
+    const showPlayer = !(this.hidden > 0) && !(this.grace > 0 && Math.floor(this.time * 12) % 2);
+    const actors = [[this.player.y, () => { if (!showPlayer) return; drawPlayer(ctx, this.maze, this.player, this.art, this.time); drawOccluder(ctx, occ, this.maze, this.player.x, this.player.y, 0.95); }]];
+    if (jobyVisible) actors.push([this.joby.y, () => { drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time); if (this.hidden > 0) drawHuh(ctx, this.maze, this.joby, this.time); drawOccluder(ctx, occ, this.maze, this.joby.x, this.joby.y, 0.7); }]);
     actors.sort((a, b) => a[0] - b[0]).forEach(a => a[1]());
     drawOverlay(ctx, this.maze, this.bg);
     this.amb.drawSky(ctx);
@@ -247,6 +261,24 @@ export class Game {
     this.cam.ease(fx, fy, Z, Math.min(1, dt * 5));
   }
 
+  tryEnterHideout() {
+    const h = this.hideout, w = this.input.want, p = this.player;
+    if (!h || this.hideCd > 0 || this.hidden > 0 || !w || p.t !== 0) return false;
+    if (p.c !== h.door[0] || p.r !== h.door[1] || w.dx !== h.enter[0] || w.dy !== h.enter[1]) return false;
+    this.hidden = h.duration; this.input.want = null; p.dir = { dx: 0, dy: 0 };
+    if (this.joby.awake) this.joby.roam = this.joby.pickRoam(h.door);
+    this.say('HIDING IN TOPPERS…', '#ffd23a'); sfx.door();
+    return true;
+  }
+
+  leaveHideout() {
+    const h = this.hideout;
+    this.hidden = 0; this.hideCd = h.cooldown; this.grace = h.grace; this.joby.roam = null;
+    this.input.want = null;
+    this.say('BOUNCER KICKED YOU OUT!', '#ff8a3d'); sfx.door();
+    const T = this.maze.T; this.amb.puff((h.door[0] + 0.5) * T, (h.door[1] + 0.9) * T);
+  }
+
   jobyTrail() {
     if (!this.joby.awake) return;
     const key = this.joby.c + ',' + this.joby.r;
@@ -285,6 +317,39 @@ export class Game {
       if (tk) { this.player.c = tk.c; this.player.r = tk.r; this.player.t = 0; }
     }
   }
+}
+
+function drawHideout(ctx, maze, h, g, time) {
+  const T = maze.T, [dc, dr] = h.door, x = (dc + 0.5) * T, y = (dr + 1) * T;
+  const open = g.hideCd <= 0 && g.hidden <= 0, inside = g.hidden > 0;
+  // doorway on the block edge
+  ctx.save();
+  ctx.fillStyle = '#2a1d14'; ctx.fillRect(x - T * 0.42, y - 2, T * 0.84, T * 0.62);
+  const glow = open ? 0.75 + 0.25 * Math.sin(time * 4) : inside ? 1 : 0.25;
+  ctx.fillStyle = `rgba(255,190,80,${glow})`; ctx.fillRect(x - T * 0.34, y + 3, T * 0.68, T * 0.52);
+  if (inside) { ctx.shadowColor = 'rgba(255,170,60,.9)'; ctx.shadowBlur = 20; ctx.fillRect(x - T * 0.34, y + 3, T * 0.68, T * 0.52); ctx.shadowBlur = 0; }
+  // neon sign
+  ctx.font = `900 ${T * 0.3}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 4; ctx.strokeStyle = '#1b1b1b'; ctx.strokeText(open ? 'HIDE' : inside ? 'IN' : Math.ceil(g.hideCd) + 's', x, y + T * 0.85);
+  ctx.fillStyle = open ? '#ff3fa4' : '#7a6f66'; if (open) { ctx.shadowColor = '#ff3fa4'; ctx.shadowBlur = 10; }
+  ctx.fillText(open ? 'HIDE' : inside ? 'IN' : Math.ceil(g.hideCd) + 's', x, y + T * 0.85); ctx.shadowBlur = 0;
+  // arrow hint when the dawg is close
+  if (open && g.state === 'play') {
+    const d = maze.dist(g.player.tile(), h.door);
+    if (d < 4) {
+      const a = (1 - d / 4) * (0.6 + 0.4 * Math.sin(time * 8)), bob = Math.sin(time * 8) * 4;
+      ctx.globalAlpha = a; ctx.fillStyle = '#ffd23a'; ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x - 12, y - T * 0.55 + bob); ctx.lineTo(x + 12, y - T * 0.55 + bob); ctx.lineTo(x, y - T * 0.3 + bob); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+  ctx.restore();
+}
+
+function drawHuh(ctx, maze, j, time) {
+  const T = maze.T, x = (j.x + 0.5) * T, y = (j.y + 0.5) * T - T * 1.35 + Math.sin(time * 6) * 3;
+  ctx.font = `900 ${T * 0.55}px Impact,'Arial Black',sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 5; ctx.strokeStyle = '#1b1b1b'; ctx.strokeText('?', x, y); ctx.fillStyle = '#fff'; ctx.fillText('?', x, y);
 }
 
 function worldToScreen(cam, wx, wy) { return [(wx - cam.fx) * cam.s + cam.w / 2, (wy - cam.fy) * cam.s + cam.h / 2]; }

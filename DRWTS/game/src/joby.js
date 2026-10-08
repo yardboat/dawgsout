@@ -14,6 +14,20 @@ export class Joby extends Actor {
     this.tick = Math.min(this.tick + 1, this.ticks.length - 1);
     this.speed = this.ticks[this.tick];
   }
-  choose() { return this.m.step([this.c, this.r], this.target.tile()); }
+  // While the dawg is hidden Joby loses the scent and roams to random spots.
+  choose() {
+    if (this.roam) {
+      if (this.c === this.roam[0] && this.r === this.roam[1]) this.roam = this.pickRoam();
+      return this.m.step([this.c, this.r], this.roam);
+    }
+    return this.m.step([this.c, this.r], this.target.tile());
+  }
+  pickRoam(avoid) {
+    const open = [];
+    for (let r = 0; r < this.m.H; r++) for (let c = 0; c < this.m.W; c++) if (this.m.g[r][c] !== '#') open.push([c, r]);
+    const far = avoid ? open.filter(p => this.m.dist(p, avoid) > 7) : open;
+    const pool = far.length ? far : open;
+    return pool[(Math.random() * pool.length) | 0];
+  }
   update(dt) { if (this.awake) super.update(dt); }
 }

@@ -211,7 +211,20 @@
     16,
     13.8
    ],
-   "note": ""
+   "note": "",
+   "hideout": {
+    "door": [
+     16,
+     12
+    ],
+    "enter": [
+     0,
+     1
+    ],
+    "duration": 3.5,
+    "cooldown": 12,
+    "grace": 1.0
+   }
   },
   {
    "id": "bourbon",
