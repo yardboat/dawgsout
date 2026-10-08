@@ -1,0 +1,282 @@
+{
+ "version": 1,
+ "tile": 60,
+ "size": [
+  20,
+  30
+ ],
+ "hud_rows": {
+  "top": 2,
+  "bottom": 2
+ },
+ "grid": [
+  "####################",
+  "####################",
+  "#..................#",
+  "#.###.####.###.#####",
+  "#.###.####.###.#####",
+  "#.###.####.###.#####",
+  "#.###.####.###.#####",
+  "#..........###.....#",
+  "#.########.###.###.#",
+  "#.########.###.###.#",
+  "#.########.###.###.#",
+  "#.########.###.###.#",
+  "#.....####.........#",
+  "#.###.####.#######.#",
+  "#.###.####.#######.#",
+  "#.###.####.#######.#",
+  "#.###.###...######.#",
+  "...............###..",
+  "#####.###...##.###.#",
+  "#####.####.###.###.#",
+  "#####.####.###.###.#",
+  "#####.####.###.###.#",
+  "#.###..............#",
+  "#.###.####.###.###.#",
+  "#.###.####.###.###.#",
+  "#.###.####.###.###.#",
+  "#.###.###...##.###.#",
+  "#..................#",
+  "####################",
+  "####################"
+ ],
+ "wrap_rows": [
+  17
+ ],
+ "spawns": {
+  "player": [
+   10,
+   27
+  ],
+  "joby": [
+   1,
+   2
+  ]
+ },
+ "word_spawn_candidates": [
+  [
+   18,
+   2
+  ],
+  [
+   1,
+   12
+  ],
+  [
+   10,
+   12
+  ],
+  [
+   1,
+   22
+  ],
+  [
+   18,
+   22
+  ],
+  [
+   5,
+   2
+  ],
+  [
+   5,
+   22
+  ],
+  [
+   14,
+   7
+  ],
+  [
+   18,
+   12
+  ],
+  [
+   18,
+   17
+  ],
+  [
+   10,
+   7
+  ],
+  [
+   10,
+   2
+  ],
+  [
+   5,
+   17
+  ],
+  [
+   5,
+   7
+  ],
+  [
+   14,
+   22
+  ],
+  [
+   14,
+   12
+  ]
+ ],
+ "streets": {
+  "horizontal": {
+   "27": "Broad St",
+   "22": "Clayton St",
+   "17": "Washington St",
+   "12": "Hancock St",
+   "7": "Prince Ave",
+   "2": "Dougherty St"
+  },
+  "vertical": {
+   "1": "Pulaski St",
+   "5": "Lumpkin St",
+   "10": "College Ave",
+   "14": "Jackson St",
+   "18": "Thomas/Foundry St"
+  }
+ },
+ "landmarks": [
+  {
+   "id": "arch",
+   "name": "The Arch",
+   "rect": [
+    9,
+    26,
+    11,
+    27
+   ],
+   "frontage": [
+    10,
+    27
+   ],
+   "note": "Black iron arch gateway on brick pillars across College Ave at Broad St. Overlay sprite; player start is just north."
+  },
+  {
+   "id": "watt40",
+   "name": "40 Watt Club",
+   "rect": [
+    2,
+    13,
+    4,
+    16
+   ],
+   "frontage": [
+    1,
+    17
+   ],
+   "note": "Low brick music club, Washington St at Pulaski. Fronts the Washington St corridor."
+  },
+  {
+   "id": "ga_theatre",
+   "name": "Georgia Theatre",
+   "rect": [
+    2,
+    18,
+    4,
+    21
+   ],
+   "frontage": [
+    5,
+    20
+   ],
+   "note": "Tall brick theatre on Lumpkin between Clayton and Washington. 2010: scaffolded/under reconstruction (decision A3 pending)."
+  },
+  {
+   "id": "city_bar",
+   "name": "City Bar",
+   "rect": [
+    6,
+    18,
+    8,
+    21
+   ],
+   "frontage": [
+    7,
+    22
+   ],
+   "note": "Corner bar with striped awning, north side of Clayton. Location approximate, unverified."
+  },
+  {
+   "id": "last_resort",
+   "name": "Last Resort",
+   "rect": [
+    6,
+    23,
+    8,
+    26
+   ],
+   "frontage": [
+    7,
+    22
+   ],
+   "note": "Cafe with string-lit patio, south side of Clayton. Location approximate, unverified."
+  },
+  {
+   "id": "sideways",
+   "name": "Sideways",
+   "rect": [
+    12,
+    23,
+    13,
+    26
+   ],
+   "frontage": [
+    12,
+    22
+   ],
+   "note": "Narrow bar with sidewalk seating, south side of Clayton. Location approximate, unverified."
+  },
+  {
+   "id": "buddha_bar",
+   "name": "Buddha Bar",
+   "rect": [
+    15,
+    18,
+    17,
+    21
+   ],
+   "frontage": [
+    16,
+    22
+   ],
+   "note": "Small bar with red lanterns, north side of Clayton. Location approximate, unverified."
+  },
+  {
+   "id": "bourbon",
+   "name": "Bourbon Street",
+   "rect": [
+    15,
+    8,
+    17,
+    11
+   ],
+   "frontage": [
+    16,
+    12
+   ],
+   "note": "Balconied New Orleans-style bar. Location approximate, unverified."
+  },
+  {
+   "id": "townie",
+   "name": "The Townie Side of Town",
+   "rect": [
+    2,
+    3,
+    4,
+    6
+   ],
+   "frontage": [
+    1,
+    5
+   ],
+   "note": "Cluster of small porch cottages with a glowing sign. Meaning pending decision A3."
+  }
+ ],
+ "stats": {
+  "walkable": 187,
+  "dead_ends": 2,
+  "intersections": 29
+ }
+}

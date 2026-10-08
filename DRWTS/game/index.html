@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>DAWGS OUT</title>
+<style>
+  html,body{margin:0;height:100%;background:#1c2240;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none}
+  canvas{display:block;width:100vw;height:100dvh}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+const dpr=Math.min(window.devicePixelRatio||1,3);
+let w,h,taps=[];
+function resize(){w=innerWidth;h=innerHeight;c.width=w*dpr;c.height=h*dpr;x.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+c.addEventListener('pointerdown',e=>{taps.push({x:e.clientX,y:e.clientY,t:performance.now(),hue:Math.random()*360})});
+function draw(now){
+  x.fillStyle='#1c2240';x.fillRect(0,0,w,h);
+  x.fillStyle='#f4e9c6';x.textAlign='center';
+  x.font='700 '+Math.min(w*0.14,64)+'px system-ui,sans-serif';x.fillText('DAWGS OUT',w/2,h*0.4);
+  x.font='500 '+Math.min(w*0.045,20)+'px system-ui,sans-serif';
+  x.fillText('pipeline test · tap anywhere',w/2,h*0.4+36);
+  x.fillText(w+' x '+h+' @'+dpr+'x',w/2,h*0.4+64);
+  taps=taps.filter(t=>now-t.t<1500);
+  for(const t of taps){const a=1-(now-t.t)/1500;x.fillStyle='hsla('+t.hue+',80%,55%,'+a+')';const s=40+(1-a)*40;x.fillRect(t.x-s/2,t.y-s/2,s,s)}
+  requestAnimationFrame(draw)}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
