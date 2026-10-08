@@ -10,8 +10,9 @@ import { drawPortrait, drawMelt } from './cutscenes.js';
 const CORNERS = [[1, 2], [18, 2], [1, 27], [18, 27]];
 
 export class Game {
-  constructor(level, phrases, lines, input, debug, bg) {
+  constructor(level, phrases, lines, input, debug, bg, art = {}) {
     this.bg = bg;
+    this.art = art;
     this.maze = new Maze(level);
     this.phrases = phrases.phases;
     this.tun = phrases.tunables;
@@ -124,7 +125,7 @@ export class Game {
     drawWorld(ctx, this.maze, this.debug, this.bg);
     drawTokens(ctx, this.maze, this.words, this.time);
     drawPlayer(ctx, this.maze, this.player);
-    if (this.joby.awake && this.state !== 'wincut' && this.state !== 'win') drawJoby(ctx, this.maze, this.joby);
+    if (this.joby.awake && this.state !== 'wincut' && this.state !== 'win') drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time);
     drawOverlay(ctx, this.maze, this.bg);
     const jInfo = this.joby.awake ? `JOBY SPEED ${this.joby.speed.toFixed(1)}` : '';
     drawHUD(ctx, this.maze, this.phrases[this.phase], this.words.next, this.phase + 1, jInfo);
@@ -153,7 +154,7 @@ export class Game {
         break;
       case 'reveal':
         drawCard(ctx, w, h, { title: 'NASTY JOBY IS OUT', lines: ['DAWGS RISE WITH THE SUN ✓', 'Now finish the second chant', 'before Joby gets you.'], color: '#ff4a4a', dim: 0.75 });
-        drawPortrait(ctx, w / 2, h * 0.17, u * 0.24);
+        drawPortrait(ctx, w / 2, h * 0.17, u * 0.32);
         break;
       case 'caught': {
         const [sx, sy] = js();

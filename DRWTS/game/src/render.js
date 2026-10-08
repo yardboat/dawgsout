@@ -104,10 +104,17 @@ export function drawPlayer(ctx, maze, p) {
   });
 }
 
-export function drawJoby(ctx, maze, j) {
+export function drawJoby(ctx, maze, j, sprite, time = 0) {
   const T = maze.T;
   drawWrapped(ctx, maze, j.x, (x) => {
     const cx = (x + 0.5) * T, cy = (j.y + 0.5) * T;
+    if (sprite) {
+      const h = T * 1.6, w = h * sprite.width / sprite.height;
+      const bob = Math.abs(Math.sin(time * 10)) * T * 0.06, flip = j.dir.dx < 0;
+      ctx.save(); ctx.translate(cx, cy + T * 0.45 - bob); if (flip) ctx.scale(-1, 1);
+      ctx.drawImage(sprite, -w / 2, -h, w, h); ctx.restore();
+      return;
+    }
     ctx.fillStyle = j.awake ? '#c41010' : 'rgba(196,16,16,.35)';
     ctx.beginPath(); ctx.arc(cx, cy, T * 0.42, 0, 7); ctx.fill();
     ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.stroke();
