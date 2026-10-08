@@ -124,7 +124,7 @@ export class Game {
     this.cam.apply(ctx, w, h);
     drawWorld(ctx, this.maze, this.debug, this.bg);
     drawTokens(ctx, this.maze, this.words, this.time);
-    drawPlayer(ctx, this.maze, this.player);
+    drawPlayer(ctx, this.maze, this.player, this.art, this.time);
     if (this.joby.awake && this.state !== 'wincut' && this.state !== 'win') drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time);
     drawOverlay(ctx, this.maze, this.bg);
     const jInfo = this.joby.awake ? `JOBY SPEED ${this.joby.speed.toFixed(1)}` : '';
@@ -150,7 +150,7 @@ export class Game {
 
     switch (this.state) {
       case 'title':
-        drawCard(ctx, w, h, { title: 'DAWGS OUT', lines: ['Grab the words of the chant in order.', 'Wrong word wakes up Nasty Joby.', 'Swipe / drag (or arrow keys) to move.'], button: 'TAP TO PLAY' });
+        drawCard(ctx, w, h, { title: 'DAWGS OUT', lines: ['Grab the words of the chant in order.', 'Wrong word wakes up Nasty Joby.', 'Swipe / drag (or arrow keys) to move.'], button: 'TAP TO PLAY', image: this.art.front });
         break;
       case 'reveal':
         drawCard(ctx, w, h, { title: 'NASTY JOBY IS OUT', lines: ['DAWGS RISE WITH THE SUN ✓', 'Now finish the second chant', 'before Joby gets you.'], color: '#ff4a4a', dim: 0.75 });
@@ -172,7 +172,7 @@ export class Game {
         break;
       }
       case 'win':
-        this.button = drawCard(ctx, w, h, { title: 'DAWGS OUT!', lines: ['TITS OUT FOR THE DAWGS ✓', 'Nasty Joby has melted.'], button: 'PLAY AGAIN', dim: 0.85 });
+        this.button = drawCard(ctx, w, h, { title: 'DAWGS OUT!', lines: ['TITS OUT FOR THE DAWGS ✓', 'Nasty Joby has melted.'], button: 'PLAY AGAIN', dim: 0.85, image: this.art.win });
         break;
     }
   }

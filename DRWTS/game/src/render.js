@@ -94,10 +94,20 @@ export function drawTokens(ctx, maze, words, time) {
   }
 }
 
-export function drawPlayer(ctx, maze, p) {
+export function drawPlayer(ctx, maze, p, art = {}, time = 0) {
   const T = maze.T;
   drawWrapped(ctx, maze, p.x, (x) => {
     const cx = (x + 0.5) * T, cy = (p.y + 0.5) * T;
+    const moving = p.dir.dx || p.dir.dy;
+    const img = (p.dir.dx || p.dir.dy < 0) ? art.walk : art.front;
+    if (img) {
+      if (p.dir.dx) p.face = p.dir.dx;
+      const w0 = img === art.walk ? T * 1.7 : T * 1.3, h = w0 * img.height / img.width;
+      const bob = moving ? Math.abs(Math.sin(time * 14)) * T * 0.07 : 0;
+      ctx.save(); ctx.translate(cx, cy + T * 0.4 - bob); if (img === art.walk && p.face < 0) ctx.scale(-1, 1);
+      ctx.drawImage(img, -w0 / 2, -h, w0, h); ctx.restore();
+      return;
+    }
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, T * 0.38, 0, 7); ctx.fill();
     ctx.strokeStyle = '#ba0c2f'; ctx.lineWidth = T * 0.09; ctx.stroke();
     ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.font = `900 ${T * 0.36}px system-ui,sans-serif`; ctx.fillText('D', cx, cy + 2);

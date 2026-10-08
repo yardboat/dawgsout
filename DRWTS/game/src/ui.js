@@ -32,9 +32,10 @@ export function drawStick(ctx, stick) {
 }
 
 // Screen-space card: dim + title + lines + optional button. Returns button rect for hit testing.
-export function drawCard(ctx, w, h, { title, lines = [], button, color = '#ffd23a', dim = 0.7 }) {
+export function drawCard(ctx, w, h, { title, lines = [], button, color = '#ffd23a', dim = 0.7, image }) {
   ctx.fillStyle = `rgba(10,12,30,${dim})`; ctx.fillRect(0, 0, w, h);
   const u = Math.min(w, h * 0.66) / 10;
+  if (image) { const ih = Math.min(h * 0.22, u * 3.6), iw = ih * image.width / image.height; ctx.drawImage(image, w / 2 - iw / 2, h * 0.3 - u * 0.9 - ih, iw, ih); }
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = color; ctx.font = `900 ${u * 1.1}px system-ui,sans-serif`;
   wrapText(ctx, title, w / 2, h * 0.38, w * 0.9, u * 1.2);
