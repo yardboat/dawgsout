@@ -178,3 +178,13 @@ export function drawSigns(ctx, maze) {
     ctx.restore();
   }
 }
+
+// Depth: redraw the parts of the map that stand in front of an actor (trees, roof peaks, parked cars, the Arch)
+// over that actor only, below a line just above its feet.
+export function drawOccluder(ctx, occ, maze, x, y, halfW = 1, height = 1.8) {
+  if (!occ) return;
+  const T = maze.T, cx = (x + 0.5) * T, feet = (y + 0.5) * T + 0.42 * T;
+  const top = feet - 0.28 * T, x0 = cx - halfW * T, w = halfW * 2 * T, h = feet + 0.1 * T - top;
+  if (h <= 0) return;
+  ctx.drawImage(occ, x0, top, w, h, x0, top, w, h);
+}

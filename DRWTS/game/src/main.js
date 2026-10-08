@@ -22,11 +22,11 @@ const load = p => fetch(p, { cache: 'no-cache' }).then(r => { if (!r.ok) throw n
 try {
   const [level, phrases, lines] = await Promise.all([load('data/level.json'), load('data/phrases.json'), load('data/joby_lines.json')]);
   const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
-  const [bg, jobySprite, jobyPortrait, walk, front, win] = await Promise.all([level.background ? img(level.background) : null, img('assets/joby_sprite.png'), img('assets/joby_portrait.png'), img('assets/dawg_walk.png'), img('assets/dawg_front.png'), img('assets/dawg_win.png')]);
+  const [bg, jobySprite, jobyPortrait, walk, front, win, occluder] = await Promise.all([level.background ? img(level.background) : null, img('assets/joby_sprite.png'), img('assets/joby_portrait.png'), img('assets/dawg_walk.png'), img('assets/dawg_front.png'), img('assets/dawg_win.png'), img('assets/map_occluder.png')]);
   if (jobyPortrait) setPortrait(jobyPortrait);
   const input = new Input(canvas);
   input.mouseDebug = debug;
-  const game = new Game(level, phrases, lines, input, debug, bg, { joby: jobySprite, walk, front, win });
+  const game = new Game(level, phrases, lines, input, debug, bg, { joby: jobySprite, walk, front, win, occluder });
   window.game = game; // handy in the console
   const probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden';
   document.body.appendChild(probe); game.safeTop = probe.offsetHeight || 0;

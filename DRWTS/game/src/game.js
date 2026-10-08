@@ -3,9 +3,10 @@ import { Maze } from './maze.js';
 import { Player } from './player.js';
 import { Joby } from './joby.js';
 import { Words } from './words.js';
-import { Camera, drawWorld, drawOverlay, drawTokens, drawPlayer, drawJoby } from './render.js';
+import { Camera, drawWorld, drawOverlay, drawTokens, drawPlayer, drawJoby, drawOccluder } from './render.js';
 import { drawHUDScreen, drawVignette, drawStick, drawCard, drawBubble, hit } from './ui.js';
 import { FX } from './fx.js';
+import { Ambient } from './ambient.js';
 import { sfx } from './audio.js';
 import { drawPortrait, drawMelt } from './cutscenes.js';
 
@@ -25,6 +26,7 @@ export class Game {
     this.time = 0;
     this.toast = null;
     this.fx = new FX();
+    this.amb = new Ambient(this.maze);
     this.vw = 400; this.vh = 800; this.safeTop = 0;
     this.danger = 0; this.beat = 0; this.pulse = 0; this.slots = [];
     this.newRun();
@@ -57,6 +59,7 @@ export class Game {
   update(dt) {
     this.time += dt; this.st += dt;
     this.fx.update(dt);
+    this.amb.update(dt);
     this.pulse = Math.max(0, this.pulse - dt * 3);
     if (this.toast && (this.toast.t -= dt) <= 0) this.toast = null;
     const taps = this.input.takeTaps();
@@ -71,7 +74,12 @@ export class Game {
 
       case 'play': {
         this.follow(dt);
-        if (this.stun > 0) this.stun -= dt; else this.player.update(dt);
+        if (this.stun > 0) this.stun -= dt; else {
+          const before = this.player.dir;
+          this.player.update(dt);
+          const d = this.player.dir;
+          if ((d.dx || d.dy) && (d.dx !== before.dx || d.dy !== before.dy)) { const T = this.maze.T; this.amb.puff((this.player.x + 0.5) * T, (this.player.y + 0.8) * T); }
+        }
         this.joby.update(dt);
         this.words.update(dt);
         this.jobyTrail();
@@ -148,12 +156,15 @@ export class Game {
     this.cam.apply(ctx, w, h);
     drawWorld(ctx, this.maze, this.debug, this.bg);
     this.fx.drawPuddles(ctx);
+    this.amb.drawGround(ctx);
     drawTokens(ctx, this.maze, this.words, this.time);
     const jobyVisible = this.joby.awake && this.state !== 'wincut' && this.state !== 'win';
-    const actors = [[this.player.y, () => drawPlayer(ctx, this.maze, this.player, this.art, this.time)]];
-    if (jobyVisible) actors.push([this.joby.y, () => drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time)]);
+    const occ = this.art.occluder;
+    const actors = [[this.player.y, () => { drawPlayer(ctx, this.maze, this.player, this.art, this.time); drawOccluder(ctx, occ, this.maze, this.player.x, this.player.y, 0.95); }]];
+    if (jobyVisible) actors.push([this.joby.y, () => { drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time); drawOccluder(ctx, occ, this.maze, this.joby.x, this.joby.y, 0.7); }]);
     actors.sort((a, b) => a[0] - b[0]).forEach(a => a[1]());
     drawOverlay(ctx, this.maze, this.bg);
+    this.amb.drawSky(ctx);
     this.fx.drawTop(ctx);
     ctx.restore();
 

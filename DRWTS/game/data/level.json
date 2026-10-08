@@ -279,5 +279,9 @@
   "dead_ends": 1,
   "intersections": 23
  },
- "background": "assets/map_beauty.jpg"
+ "background": "assets/map_beauty.jpg",
+ "fountain": [
+  750,
+  902
+ ]
 }
