@@ -23,7 +23,7 @@ IMAGE 2 is a STRICT LAYOUT GUIDE (a floor plan). Redraw it as a finished, illust
   * Orange: a narrow bar with sidewalk seating.
   * Pink: a small bar with red paper lanterns.
   * Brown: a balconied New Orleans-style bar with wrought-iron balconies.
-  * Teal: a cluster of small porch cottages with a glowing sign.
+  * Teal: a hipster block: a shop with a big hand-painted sign reading "MAX CANADA", a tattoo parlor with a neon sign, fixed-gear bikes locked to racks, mustached hipsters on the sidewalk.
 - The top ~7% and bottom ~7% of the image (the dark navy bands) must be a calm, simple decorative border (soft trees, sky or lawn, no buildings, no detail) because a game interface will sit on top.
 - Add charm: tiny cartoon cars, bikes and people on the streets (small, never blocking paths), street trees, a hot-dog cart, a few banners. All animals and people must be generic cartoons.
 No text or lettering anywhere in the image. No logos, no brand names, no real people. It must still read clearly as a maze of paths when shrunk to a phone thumbnail.
@@ -35,4 +35,4 @@ No text or lettering anywhere in the image. No logos, no brand names, no real pe
 3. I overlay the guide at 50% on your output, check alignment, and fix tiles in the debug editor. Small drift is fine; the game grid is the truth, the art is decoration.
 
 ## Landmark notes (all positions approximate; unverified except Arch, 40 Watt, Georgia Theatre)
-Georgia Theatre is drawn scaffolded for 2010 (decision A3 pending; I can change the line to "whole" in seconds). "The Townie Side of Town" is drawn as the cottage cluster until you tell me what it is.
+Georgia Theatre is drawn scaffolded for 2010 (decision A3 pending; I can change the line to "whole" in seconds). "The Townie Side of Town" is the hipster block (MAX CANADA, tattoo shop, fixed-gear bikes).
