@@ -154,124 +154,124 @@
    "note": "Black iron arch gateway on brick pillars across College Ave at Broad St. Overlay sprite; player start is just north."
   },
   {
-   "id": "watt40",
-   "name": "40 Watt Club",
-   "rect": [
-    2,
-    13,
-    4,
-    16
-   ],
-   "frontage": [
-    1,
-    17
-   ],
-   "note": "Low brick music club, Washington St at Pulaski. Fronts the Washington St corridor."
-  },
-  {
-   "id": "ga_theatre",
-   "name": "Georgia Theatre",
-   "rect": [
-    2,
-    18,
-    4,
-    26
-   ],
-   "frontage": [
-    5,
-    20
-   ],
-   "note": "Tall brick theatre on Lumpkin between Clayton and Washington. 2010: scaffolded/under reconstruction (decision A3 pending)."
-  },
-  {
-   "id": "city_bar",
-   "name": "City Bar",
-   "rect": [
-    6,
-    18,
-    8,
-    21
-   ],
-   "frontage": [
-    7,
-    22
-   ],
-   "note": "Corner bar with striped awning, north side of Clayton. Location approximate, unverified."
-  },
-  {
-   "id": "last_resort",
-   "name": "Last Resort",
-   "rect": [
-    6,
-    23,
-    8,
-    26
-   ],
-   "frontage": [
-    7,
-    22
-   ],
-   "note": "Cafe with string-lit patio, south side of Clayton. Location approximate, unverified."
-  },
-  {
-   "id": "sideways",
-   "name": "Sideways",
-   "rect": [
-    11,
-    23,
-    13,
-    26
-   ],
-   "frontage": [
-    12,
-    22
-   ],
-   "note": "Narrow bar with sidewalk seating, south side of Clayton. Location approximate, unverified."
-  },
-  {
-   "id": "buddha_bar",
-   "name": "Buddha Bar",
-   "rect": [
-    15,
-    18,
-    17,
-    21
-   ],
-   "frontage": [
-    16,
-    22
-   ],
-   "note": "Small bar with red lanterns, north side of Clayton. Location approximate, unverified."
-  },
-  {
-   "id": "bourbon",
-   "name": "Bourbon Street",
-   "rect": [
-    15,
-    8,
-    17,
-    11
-   ],
-   "frontage": [
-    16,
-    12
-   ],
-   "note": "Balconied New Orleans-style bar. Location approximate, unverified."
-  },
-  {
-   "id": "townie",
-   "name": "The Townie Side of Town",
+   "id": "townies",
+   "name": "THE TOWNIES",
    "rect": [
     2,
     3,
     4,
     6
    ],
-   "frontage": [
-    1,
-    5
+   "sign": [
+    3,
+    4.6
    ],
-   "note": "Hipster block: MAX CANADA storefront, tattoo shop, fixed-gear bikes, mustached hipsters."
+   "note": "Hipster block: MAX CANADA, tattoo shop, fixed-gear bikes (art still shows cottages)."
+  },
+  {
+   "id": "city_bar",
+   "name": "City Bar",
+   "rect": [
+    11,
+    8,
+    13,
+    11
+   ],
+   "sign": [
+    12,
+    9.6
+   ],
+   "note": ""
+  },
+  {
+   "id": "ga_theatre",
+   "name": "Georgia Theatre",
+   "rect": [
+    2,
+    13,
+    4,
+    16
+   ],
+   "sign": [
+    3,
+    13.9
+   ],
+   "note": ""
+  },
+  {
+   "id": "toppers",
+   "name": "Toppers",
+   "rect": [
+    15,
+    13,
+    17,
+    16
+   ],
+   "sign": [
+    16,
+    13.8
+   ],
+   "note": ""
+  },
+  {
+   "id": "bourbon",
+   "name": "Bourbon Street",
+   "rect": [
+    15,
+    18,
+    17,
+    21
+   ],
+   "sign": [
+    16,
+    19.3
+   ],
+   "note": ""
+  },
+  {
+   "id": "walkers",
+   "name": "Walkers",
+   "rect": [
+    6,
+    18,
+    8,
+    21
+   ],
+   "sign": [
+    7,
+    20.1
+   ],
+   "note": ""
+  },
+  {
+   "id": "mayflower",
+   "name": "Mayflower",
+   "rect": [
+    2,
+    18,
+    4,
+    26
+   ],
+   "sign": [
+    3,
+    25.2
+   ],
+   "note": "Scaffolded building."
+  },
+  {
+   "id": "sideways",
+   "name": "Sideways",
+   "rect": [
+    15,
+    23,
+    17,
+    26
+   ],
+   "sign": [
+    16,
+    24.6
+   ],
+   "note": ""
   }
  ],
  "stats": {

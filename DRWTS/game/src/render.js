@@ -22,6 +22,7 @@ export function drawWorld(ctx, maze, debug, bg) {
   const T = maze.T, L = maze.level;
   if (bg) {
     ctx.drawImage(bg, 0, 0, maze.W * T, maze.H * T);
+    drawSigns(ctx, maze);
     ctx.fillStyle = 'rgba(29,34,64,.88)'; ctx.fillRect(0, 0, maze.W * T, 1.9 * T);
     if (debug) {
       ctx.fillStyle = 'rgba(0,160,255,.28)';
@@ -150,4 +151,31 @@ export function wrapText(ctx, text, x, y, maxW, lh) {
   for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
   lines.push(line);
   lines.forEach((l, i) => ctx.fillText(l, x, y + (i - (lines.length - 1) / 2) * lh));
+}
+
+// Hand-lettered plaques on rooftops. Anchored inside block rects, clamped so they never spill onto a street.
+export function drawSigns(ctx, maze) {
+  const T = maze.T;
+  for (const lm of maze.level.landmarks) {
+    if (!lm.sign) continue;
+    const [x1, , x2] = lm.rect, maxW = (x2 - x1 + 1) * T - 14;
+    ctx.font = `800 ${T * 0.36}px Georgia,'Times New Roman',serif`;
+    const words = lm.name.split(' ');
+    let lines = [lm.name];
+    if (ctx.measureText(lm.name).width > maxW - 16 && words.length > 1) {
+      const mid = Math.ceil(words.length / 2); lines = [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+    }
+    const lh = T * 0.4, tw = Math.min(maxW, Math.max(...lines.map(l => ctx.measureText(l).width)) + 18), th = lines.length * lh + 10;
+    const cx = (lm.sign[0] + 0.5) * T, cy = (lm.sign[1] + 0.5) * T;
+    const minX = x1 * T + 7 + tw / 2, maxX = (x2 + 1) * T - 7 - tw / 2;
+    const x = Math.min(Math.max(cx, minX), maxX) - tw / 2, y = cy - th / 2;
+    ctx.save();
+    ctx.shadowColor = 'rgba(40,25,10,.35)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
+    roundRect(ctx, x, y, tw, th, 7); ctx.fillStyle = '#fbf3e1'; ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.lineWidth = 2.5; ctx.strokeStyle = '#2a1d14'; ctx.stroke();
+    roundRect(ctx, x + 4, y + 4, tw - 8, th - 8, 4); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(160,40,30,.7)'; ctx.stroke();
+    ctx.fillStyle = '#2a1d14'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    lines.forEach((l, i) => ctx.fillText(l, x + tw / 2, y + 5 + lh * (i + 0.5) + 1, tw - 12));
+    ctx.restore();
+  }
 }
