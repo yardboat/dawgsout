@@ -18,7 +18,7 @@ export class Music {
   attach(ac) {
     if (this.ac || !ac) return;
     this.ac = ac;
-    this.out = ac.createGain(); this.out.gain.value = 0.16; this.out.connect(ac.destination);
+    this.out = ac.createGain(); this.out.gain.value = 0.4; this.out.connect(ac.destination);
     const len = ac.sampleRate * 0.2, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     this.noise = buf;
@@ -53,10 +53,12 @@ export class Music {
   }
   setFast(f) { this.fast = f; }
   stop() { this.on = false; clearInterval(this.timer); this.timer = null; }
-  toggleMute() { this.muted = !this.muted; if (this.out) this.out.gain.value = this.muted ? 0 : 0.16; return this.muted; }
+  toggleMute() { this.muted = !this.muted; if (this.out) this.out.gain.value = this.muted ? 0 : 0.4; return this.muted; }
 
   tick() {
-    if (!this.on || this.ac.state !== 'running') return;
+    if (!this.on) return;
+    if (this.ac.state !== 'running') { this.ac.resume(); return; }
+    if (this.next < this.ac.currentTime) this.next = this.ac.currentTime + 0.05; // don't burst-play a backlog
     const { list, len } = this.events();
     const step = this.fast ? 0.052 : 0.095; // seconds per 16th
     while (this.next < this.ac.currentTime + 0.15) {
@@ -67,7 +69,7 @@ export class Music {
   }
 
   play(e, at, step) {
-    const ac = this.ac;
+    const ac = this.ac; this.played = (this.played || 0) + 1;
     if (e.k === 'kick') {
       const o = ac.createOscillator(), g = ac.createGain();
       o.frequency.setValueAtTime(150, at); o.frequency.exponentialRampToValueAtTime(40, at + 0.12);

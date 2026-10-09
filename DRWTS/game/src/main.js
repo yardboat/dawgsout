@@ -2,7 +2,7 @@
 import { Input } from './input.js';
 import { Game } from './game.js';
 import { setPortrait } from './cutscenes.js';
-import { sfx } from './audio.js';
+import { sfx, music } from './audio.js';
 
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -34,7 +34,8 @@ try {
   const probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden';
   document.body.appendChild(probe); game.safeTop = probe.offsetHeight || 0;
   const unlock = () => sfx.unlock();
-  canvas.addEventListener('pointerdown', unlock); addEventListener('keydown', unlock);
+  for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(ev, unlock, { capture: true, passive: true });
+  window.__music = music;
   if (debug) addEventListener('keydown', e => game.debugKey(e.code));
 
   let last = performance.now(), paused = false;

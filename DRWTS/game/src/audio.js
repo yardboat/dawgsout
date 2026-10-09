@@ -3,13 +3,21 @@ import { Music } from './music.js';
 let ac = null;
 export const music = new Music();
 export const sfx = {
+  // Call from user-gesture events. iOS only counts touchend/click/keydown as gestures, not pointerdown.
   unlock() {
     try {
+      // iOS 17+: play through the ring/silent switch like a game, not like a notification sound.
+      if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
       if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
-      if (ac.state === 'suspended') ac.resume();
+      if (ac.state !== 'running') {
+        ac.resume();
+        const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); // silent kick to wake iOS
+        src.buffer = b; src.connect(ac.destination); src.start(0);
+      }
       music.attach(ac);
-    } catch (e) { ac = null; }
+    } catch (e) { console.warn('audio unlock failed', e); }
   },
+  get ready() { return !!ac && ac.state === 'running'; },
   tone(freq, dur, type = 'sine', vol = 0.2, slide = 0) {
     if (!ac || ac.state !== 'running') return;
     const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
