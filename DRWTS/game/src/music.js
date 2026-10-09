@@ -10,7 +10,7 @@ const L3 = [['G4','G4','G4','G4','G4','F4','E4','G4','C5','D5','E5','E5','E5','D
 const L4 = [['C5','D5','D5','C5','B4','C5'], [4, 4, 6, 2, 4, 12], ['G3', 'C4']];
 const C1 = [['G4','F4','E4','G4','C5','D5','E5','C5'], [6, 2, 3, 1, 3, 1, 8, 8], ['C4']];
 const C2 = [['A4','B4','C5','B4','C5','A4','G4','E4'], [6, 2, 3, 1, 3, 1, 8, 8], ['F4', 'C4']];
-const SONG = [L1, L2, L3, L4, C1, C2, C1, L4];
+const SONG = [C1, C2, C1, L4]; // chorus only: "Glory, glory, hallelujah… His truth is marching on"
 
 export class Music {
   constructor() { this.ac = null; this.on = false; this.fast = false; this.muted = false; this.timer = null; }

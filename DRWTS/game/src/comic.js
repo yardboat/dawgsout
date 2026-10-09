@@ -347,3 +347,51 @@ export class MeltScene {
   }
 }
 MeltScene.prototype.sfxText = ComicReveal.prototype.sfxText;
+
+
+// Hiding in Toppers: the regular who owns the spot tells you to leave. Plays over the paused-looking map.
+export class ComicToppers {
+  constructor(art, lines) {
+    this.art = art; this.t = 0; this.done = false; this.len = 3.4;
+    this.line = lines.toppers || 'HEY NO YOU HAVE TO LEAVE, THIS IS MY SPOT';
+    this.fired = false;
+  }
+  skip() { if (this.t > 0.8) this.done = true; }
+  update(dt) {
+    this.t += dt;
+    if (!this.fired && this.t > 0.45) { this.fired = true; sfx.thump(0.9); }
+    if (this.t >= this.len) this.done = true;
+  }
+  draw(ctx, w, h) {
+    const t = this.t, u = Math.min(w, h * 0.66) / 10;
+    const out = Math.max(0, (t - (this.len - 0.3)) / 0.3);
+    ctx.fillStyle = `rgba(20,8,30,${0.6 * Math.min(1, t * 4) * (1 - out)})`; ctx.fillRect(0, 0, w, h);
+    const pw = Math.min(w * 0.9, h * 0.5), ph = pw * 1.25, k = ease(t / 0.3);
+    const x = (w - pw) / 2, y = (h - ph) / 2 + (1 - k) * h * 0.7 + out * h;
+    ctx.save(); ctx.translate(x + pw / 2, y + ph / 2); ctx.rotate(1.5 * Math.PI / 180); ctx.translate(-pw / 2, -ph / 2);
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(7, 9, pw, ph);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, pw, ph); ctx.clip();
+    // bar-light backdrop
+    const g = ctx.createRadialGradient(pw / 2, ph * 0.3, 10, pw / 2, ph * 0.4, ph);
+    g.addColorStop(0, '#6b3fa0'); g.addColorStop(1, '#1d0f33'); ctx.fillStyle = g; ctx.fillRect(0, 0, pw, ph);
+    const img = (this.art.panels && this.art.panels.toppers) || this.art.toppersGuy;
+    if (img) {
+      const push = 1 + Math.min(1, t / this.len) * 0.08, s = Math.max(pw / img.width, ph / img.height) * push;
+      const iw = img.width * s, ih = img.height * s;
+      ctx.drawImage(img, (pw - iw) / 2, Math.min(0, (ph - ih) * 0.08), iw, ih);
+      // halftone + ink vignette so a photo reads as a comic panel
+      ctx.fillStyle = 'rgba(20,10,30,.18)';
+      for (let yy = 0; yy < ph; yy += 6) for (let xx = (yy / 6) % 2 ? 3 : 0; xx < pw; xx += 6) { ctx.beginPath(); ctx.arc(xx, yy, 1.1, 0, 7); ctx.fill(); }
+    }
+    ctx.restore();
+    ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.strokeRect(0, 0, pw, ph);
+    ctx.restore();
+    // caption + bubble
+    if (t > 0.2) ComicReveal.prototype.caption.call(this, ctx, x + u * 0.2, y + u * 0.2, 'MEANWHILE, INSIDE TOPPERS…', u);
+    if (t > 0.45) {
+      const sc = pop((t - 0.45) / 0.25), shake = Math.sin(t * 50) * 2;
+      ComicReveal.prototype.bubble.call(this, ctx, x + pw * 0.5 + shake, y + ph * 0.8, pw * 0.92, this.line, u * 1.05, sc, x + pw * 0.5, y + ph * 0.3);
+    }
+    if (t > 0.8) { ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = `700 ${u * 0.26}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText('tap to skip', w / 2, Math.min(h - 12, y + ph + u * 0.5)); }
+  }
+}

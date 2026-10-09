@@ -9,7 +9,7 @@ import { FX } from './fx.js';
 import { Ambient } from './ambient.js';
 import { sfx, music } from './audio.js';
 import { drawPortrait, drawMelt } from './cutscenes.js';
-import { ComicReveal, ComicWake, MeltScene } from './comic.js';
+import { ComicReveal, ComicWake, MeltScene, ComicToppers } from './comic.js';
 
 const CORNERS = [[1, 2], [18, 2], [1, 27], [18, 27]];
 
@@ -84,7 +84,9 @@ export class Game {
         if (this.grace > 0) this.grace -= dt;
         if (this.hidden > 0) {
           this.hidden -= dt;
-          if (this.hidden <= 0 || (this.input.want && this.input.want.dy === -1 && this.hidden < this.hideout.duration - 0.4)) this.leaveHideout();
+          this.topComic.update(dt);
+          if (tapped) this.topComic.skip();
+          if (this.topComic.done || this.hidden <= 0) { this.leaveHideout(); break; }
           this.joby.update(dt); this.words.update(dt); this.jobyTrail(); this.danger = Math.max(0, this.danger - dt * 2);
           if (Math.random() < dt * 6) { const T = this.maze.T, [dc, dr] = this.hideout.door; this.fx.note((dc + 0.5) * T + (Math.random() - 0.5) * T * 1.6, (dr + 1.2) * T); }
           break;
@@ -213,7 +215,8 @@ export class Game {
       this.slots = drawHUDScreen(ctx, w, h, this.safeTop, this.phrases[this.phase], this.words.next - this.fx.flying(), this.phase + 1, jInfo);
       this.fx.drawFlyers(ctx, this.slots, u10);
     }
-    if (this.state === 'play' && (this.debug || (this.phase === 0 && this.st < 5))) {
+    if (this.state === 'play' && this.hidden > 0 && this.topComic) this.topComic.draw(ctx, w, h);
+    if (this.state === 'play' && !(this.hidden > 0) && (this.debug || (this.phase === 0 && this.st < 5))) {
       ctx.fillStyle = 'rgba(18,22,48,.7)'; ctx.fillRect(0, h - u10 * 1.1, w, u10 * 1.1);
       ctx.fillStyle = '#f4e9c6'; ctx.font = `600 ${u10 * 0.3}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(this.debug ? 'DEBUG · click tile = toggle · E export · J wake · N next' : 'swipe or drag anywhere to steer', w / 2, h - u10 * 0.55, w * 0.94);
@@ -235,7 +238,6 @@ export class Game {
     const js = () => this.cam.toWorld ? worldToScreen(this.cam, (this.joby.x + 0.5) * T, (this.joby.y + 0.5) * T) : [w / 2, h / 2];
     const u = Math.min(w, h * 0.66);
 
-    if (this.state === 'play' && this.hideout) drawHideoutPointer(ctx, w, h, this, worldToScreen);
     if (this.state !== 'wincut') {
       const b = 38; this.muteBtn = { x: w - b - 10, y: h - b - 10, w: b, h: b };
       ctx.fillStyle = 'rgba(18,22,48,.7)'; ctx.beginPath(); ctx.arc(w - b / 2 - 10, h - b / 2 - 10, b / 2, 0, 7); ctx.fill();
@@ -305,9 +307,10 @@ export class Game {
     const h = this.hideout, w = this.input.want, p = this.player;
     if (!h || this.hideCd > 0 || this.hidden > 0 || !w || p.t !== 0) return false;
     if (p.c !== h.door[0] || p.r !== h.door[1] || w.dx !== h.enter[0] || w.dy !== h.enter[1]) return false;
-    this.hidden = h.duration; this.input.want = null; p.dir = { dx: 0, dy: 0 };
+    this.topComic = new ComicToppers(this.art, this.lines);
+    this.hidden = Math.max(h.duration, this.topComic.len); this.input.want = null; p.dir = { dx: 0, dy: 0 };
     if (this.joby.awake) this.joby.roam = this.joby.pickRoam(h.door);
-    this.say('HIDING IN TOPPERS…', '#ffd23a'); sfx.door();
+    sfx.door();
     return true;
   }
 
@@ -315,7 +318,7 @@ export class Game {
     const h = this.hideout;
     this.hidden = 0; this.hideCd = h.cooldown; this.grace = h.grace; this.joby.roam = null;
     this.input.want = null;
-    this.say('BOUNCER KICKED YOU OUT!', '#ff8a3d'); sfx.door();
+    this.say('HE KICKED YOU OUT!', '#ff8a3d'); sfx.door();
     const T = this.maze.T; this.amb.puff((h.door[0] + 0.5) * T, (h.door[1] + 0.9) * T);
   }
 
@@ -360,63 +363,18 @@ export class Game {
 }
 
 function drawHideout(ctx, maze, h, g, time) {
-  const T = maze.T, [dc, dr] = h.door, x = (dc + 0.5) * T, y = (dr + 1) * T;
-  const open = g.hideCd <= 0 && g.hidden <= 0, inside = g.hidden > 0;
-  // doorway on the block edge
-  ctx.save();
-  ctx.fillStyle = '#2a1d14'; ctx.fillRect(x - T * 0.42, y - 2, T * 0.84, T * 0.62);
-  const glow = open ? 0.75 + 0.25 * Math.sin(time * 4) : inside ? 1 : 0.25;
-  ctx.fillStyle = `rgba(255,190,80,${glow})`; ctx.fillRect(x - T * 0.34, y + 3, T * 0.68, T * 0.52);
-  if (inside) { ctx.shadowColor = 'rgba(255,170,60,.9)'; ctx.shadowBlur = 20; ctx.fillRect(x - T * 0.34, y + 3, T * 0.68, T * 0.52); ctx.shadowBlur = 0; }
-  // neon sign
-  ctx.font = `900 ${T * 0.3}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 4; ctx.strokeStyle = '#1b1b1b'; ctx.strokeText(open ? 'HIDE' : inside ? 'IN' : Math.ceil(g.hideCd) + 's', x, y + T * 0.85);
-  ctx.fillStyle = open ? '#ff3fa4' : '#7a6f66'; if (open) { ctx.shadowColor = '#ff3fa4'; ctx.shadowBlur = 10; }
-  ctx.fillText(open ? 'HIDE' : inside ? 'IN' : Math.ceil(g.hideCd) + 's', x, y + T * 0.85); ctx.shadowBlur = 0;
-  // beacon on the street + big neon when it's available
-  if (open && g.state !== 'title') {
-    const ph = (time * 0.9) % 1, bx = x, by = (dr + 0.5) * T;
-    for (const k of [ph, (ph + 0.5) % 1]) {
-      ctx.strokeStyle = `rgba(255,63,164,${0.9 * (1 - k)})`; ctx.lineWidth = 6 * (1 - k) + 2;
-      ctx.beginPath(); ctx.ellipse(bx, by + T * 0.15, T * (0.3 + k * 0.9), T * (0.15 + k * 0.45), 0, 0, 7); ctx.stroke();
-    }
-    const pulse = 1 + Math.sin(time * 5) * 0.06;
-    ctx.save(); ctx.translate(x, y + T * 1.35); ctx.scale(pulse, pulse);
-    ctx.font = `900 ${T * 0.42}px Impact,'Arial Black',system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const lbl = 'HIDE HERE', tw = ctx.measureText(lbl).width + T * 0.3;
-    ctx.fillStyle = 'rgba(30,10,30,.85)'; ctx.fillRect(-tw / 2, -T * 0.32, tw, T * 0.64);
-    ctx.strokeStyle = '#ff3fa4'; ctx.lineWidth = 3; ctx.strokeRect(-tw / 2, -T * 0.32, tw, T * 0.64);
-    ctx.shadowColor = '#ff3fa4'; ctx.shadowBlur = 16; ctx.fillStyle = '#ffd1ec'; ctx.fillText(lbl, 0, 2); ctx.shadowBlur = 0;
-    ctx.restore();
-  }
-  // arrow hint when the dawg is close
-  if (open && g.state === 'play') {
-    const d = maze.dist(g.player.tile(), h.door);
-    if (d < 4) {
-      const a = (1 - d / 4) * (0.6 + 0.4 * Math.sin(time * 8)), bob = Math.sin(time * 8) * 4;
-      ctx.globalAlpha = a; ctx.fillStyle = '#ffd23a'; ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(x - 12, y - T * 0.55 + bob); ctx.lineTo(x + 12, y - T * 0.55 + bob); ctx.lineTo(x, y - T * 0.3 + bob); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-  }
-  ctx.restore();
-}
-
-// When Joby is out and the hideout is off-screen, point at it from the screen edge.
-function drawHideoutPointer(ctx, w, h, g, w2s) {
-  const hd = g.hideout; if (!g.joby.awake || g.hideCd > 0 || g.hidden > 0) return;
-  const T = g.maze.T, [sx, sy] = w2s(g.cam, (hd.door[0] + 0.5) * T, (hd.door[1] + 1) * T);
-  const top = g.safeTop + Math.min(w, h * 0.66) / 10 * 1.8, pad = 34;
-  if (sx > pad && sx < w - pad && sy > top && sy < h - pad) return;
-  const cx = w / 2, cy = h / 2, ang = Math.atan2(sy - cy, sx - cx);
-  const ex = Math.min(w - pad, Math.max(pad, sx)), ey = Math.min(h - pad - 40, Math.max(top + pad, sy));
-  const p = 1 + Math.sin(g.time * 6) * 0.1;
-  ctx.save(); ctx.translate(ex, ey); ctx.scale(p, p);
-  ctx.fillStyle = 'rgba(30,10,30,.85)'; ctx.beginPath(); ctx.arc(0, 0, 24, 0, 7); ctx.fill();
-  ctx.strokeStyle = '#ff3fa4'; ctx.lineWidth = 3; ctx.stroke();
-  ctx.rotate(ang); ctx.fillStyle = '#ff3fa4'; ctx.beginPath(); ctx.moveTo(30, 0); ctx.lineTo(18, -9); ctx.lineTo(18, 9); ctx.closePath(); ctx.fill();
-  ctx.rotate(-ang); ctx.fillStyle = '#ffd1ec'; ctx.font = '900 10px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('HIDE', 0, 0);
+  // A quiet secret: a floating purple diamond over Toppers when the hideout is available.
+  if (g.hideCd > 0 || g.hidden > 0) return;
+  const T = maze.T, [dc, dr] = h.door, x = (dc + 0.5) * T, y = (dr + 1.05) * T + Math.sin(time * 2.4) * T * 0.08;
+  const r = T * 0.26, spin = Math.cos(time * 1.8);
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(40,10,60,.25)'; ctx.beginPath(); ctx.ellipse(0, T * 0.42, r * 0.8, r * 0.25, 0, 0, 7); ctx.fill();
+  ctx.scale(Math.max(0.25, Math.abs(spin)), 1);
+  ctx.shadowColor = '#b46cff'; ctx.shadowBlur = 14;
+  ctx.beginPath(); ctx.moveTo(0, -r * 1.3); ctx.lineTo(r, 0); ctx.lineTo(0, r * 1.3); ctx.lineTo(-r, 0); ctx.closePath();
+  const grd = ctx.createLinearGradient(-r, -r, r, r); grd.addColorStop(0, '#e2c4ff'); grd.addColorStop(0.5, '#9a4dff'); grd.addColorStop(1, '#5a1fa8');
+  ctx.fillStyle = grd; ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = '#2a0f45'; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.moveTo(0, -r * 1.1); ctx.lineTo(r * 0.35, -r * 0.2); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
 

@@ -18,6 +18,9 @@ A single comic-book panel, hand-inked cartoon with loose watercolor fill, matchi
 ## wake_2.png: suiting up
 [shared block] Same bedroom. Joby, still in pajama sleeves, is yanking the giant beer-can costume up over his body like a pair of pants, gritting his teeth, one leg still lifted. The can is halfway up, his head and furious face poking out the top. Dynamic, slightly from below.
 
+## toppers.png: the Toppers regular (optional, replaces the photo)
+Attach the photo of the Toppers guy as the character reference instead of Joby. [shared block, but the character is the man from the attached photo, NOT Joby: strawberry-blond hair, grey suit, maroon striped tie, holding a blue beer can] Inside a dim bar with purple neon light, he leans toward the viewer, hand up like a stop sign, annoyed and territorial. Portrait framing (4:5). Leave the bottom third quiet for a speech bubble.
+
 ## caught.png (optional, for the "caught" moment)
 [shared block] Joby leaning right into the camera with a smug, nasty grin, raising his small beer can in a mocking toast. Extreme close-up, fish-eye feel.
 
