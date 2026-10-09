@@ -2,6 +2,11 @@
 import { sfx } from './audio.js';
 
 const PAPER = '#f3e7cb', INK = '#1d140e';
+// How each Gemini panel sits in its frame: horizontal focus, how much of the frame height the art fills, backdrop.
+const FRAMING = {
+  reveal_1: { focus: 0.57, fill: 0.66, bg: '#121833' },
+  toppers: { focus: 0.55, fill: 1, bg: '#121833' },
+};
 
 function ease(t) { t = Math.min(1, Math.max(0, t)); return 1 - Math.pow(1 - t, 3); }
 function pop(t) { t = Math.min(1, Math.max(0, t)); const s = 1.70158 * 1.4; return 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2); }
@@ -69,8 +74,11 @@ export class ComicReveal {
     ctx.save(); ctx.beginPath(); ctx.rect(0, 0, pw, ph); ctx.clip();
     const img = this.art.panels && this.art.panels[key];
     if (img) {
-      const s = Math.max(pw / img.width, ph / img.height), iw = img.width * s, ih = img.height * s;
-      ctx.drawImage(img, (pw - iw) / 2, (ph - ih) / 2, iw, ih);
+      const f = FRAMING[key] || { focus: 0.5, fill: 1 };
+      if (f.bg) { ctx.fillStyle = f.bg; ctx.fillRect(0, 0, pw, ph); }
+      const s = Math.max(pw / img.width, ph * f.fill / img.height), iw = img.width * s, ih = img.height * s;
+      const ix = Math.min(0, Math.max(pw - iw, pw / 2 - iw * f.focus));
+      ctx.drawImage(img, ix, ph - ih, iw, ih);
     } else fallback(ctx, 0, 0, pw, ph);
     ctx.restore();
     ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.strokeRect(0, 0, pw, ph);
@@ -374,11 +382,14 @@ export class ComicToppers {
     // bar-light backdrop
     const g = ctx.createRadialGradient(pw / 2, ph * 0.3, 10, pw / 2, ph * 0.4, ph);
     g.addColorStop(0, '#6b3fa0'); g.addColorStop(1, '#1d0f33'); ctx.fillStyle = g; ctx.fillRect(0, 0, pw, ph);
-    const img = (this.art.panels && this.art.panels.toppers) || this.art.toppersGuy;
+    const art = this.art.panels && this.art.panels.toppers, img = art || this.art.toppersGuy;
     if (img) {
       const push = 1 + Math.min(1, t / this.len) * 0.08, s = Math.max(pw / img.width, ph / img.height) * push;
       const iw = img.width * s, ih = img.height * s;
-      ctx.drawImage(img, (pw - iw) / 2, Math.min(0, (ph - ih) * 0.08), iw, ih);
+      const fx = art ? FRAMING.toppers.focus : 0.5;
+      ctx.drawImage(img, Math.min(0, Math.max(pw - iw, pw / 2 - iw * fx)), art ? (ph - ih) * 0.35 : Math.min(0, (ph - ih) * 0.08), iw, ih);
+    }
+    if (img && !art) {
       // halftone + ink vignette so a photo reads as a comic panel
       ctx.fillStyle = 'rgba(20,10,30,.18)';
       for (let yy = 0; yy < ph; yy += 6) for (let xx = (yy / 6) % 2 ? 3 : 0; xx < pw; xx += 6) { ctx.beginPath(); ctx.arc(xx, yy, 1.1, 0, 7); ctx.fill(); }
@@ -390,7 +401,7 @@ export class ComicToppers {
     if (t > 0.2) ComicReveal.prototype.caption.call(this, ctx, x + u * 0.2, y + u * 0.2, 'MEANWHILE, INSIDE TOPPERS…', u);
     if (t > 0.45) {
       const sc = pop((t - 0.45) / 0.25), shake = Math.sin(t * 50) * 2;
-      ComicReveal.prototype.bubble.call(this, ctx, x + pw * 0.5 + shake, y + ph * 0.8, pw * 0.92, this.line, u * 1.05, sc, x + pw * 0.5, y + ph * 0.3);
+      ComicReveal.prototype.bubble.call(this, ctx, x + pw * 0.5 + shake, y + ph * 0.2, pw * 0.92, this.line, u * 1.05, sc, x + pw * 0.46, y + ph * 0.44);
     }
     if (t > 0.8) { ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = `700 ${u * 0.26}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText('tap to skip', w / 2, Math.min(h - 12, y + ph + u * 0.5)); }
   }
