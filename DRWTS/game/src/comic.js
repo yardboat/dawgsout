@@ -13,10 +13,10 @@ export class ComicReveal {
     this.beats = [
       { at: 0.05, fn: () => sfx.thump(0.8) },
       { at: 2.7, fn: () => sfx.thump(0.8) },
-      { at: 3.1, fn: () => sfx.glug() }, { at: 3.45, fn: () => sfx.glug() }, { at: 3.8, fn: () => sfx.glug() },
-      { at: 4.9, fn: () => sfx.thump(1.1) },
+      { at: 4.6, fn: () => sfx.thump(1.1) },
     ];
-    this.len = 6.4;
+    this.resolve = lines.resolve || "I'VE GOTTA STOP THIS.";
+    this.len = 6.0;
   }
   skip() { if (this.t > 1) this.done = true; }
   update(dt) {
@@ -46,16 +46,12 @@ export class ComicReveal {
     if (t > 2.6) {
       const k2 = ease((t - 2.6) / 0.35);
       this.panel(ctx, m + (1 - k2) * w, y2, pw, ph, 1.0, 'reveal_2', (c, x, y, pw2, ph2) => this.fallback2(c, x, y, pw2, ph2, t - 2.6));
-      ['GLUG', 'GLUG', 'GLUG!'].forEach((g, i) => {
-        const tt = t - (3.1 + i * 0.35); if (tt < 0) return;
-        this.sfxText(ctx, m + pw * (0.2 + i * 0.27), y2 + ph * (0.25 + (i % 2) * 0.12), g, u * 0.9, pop(tt / 0.25), -8 + i * 8);
-      });
-      if (t > 4.2) this.bubble(ctx, m + pw * 0.5, y2 + ph * 0.84, pw * 0.5, 'AHHH.', u, pop((t - 4.2) / 0.25), m + pw * 0.5, y2 + ph * 0.6);
+      if (t > 3.0) this.bubble(ctx, m + pw * 0.34, y2 + ph * 0.2, pw * 0.6, this.resolve, u * 1.05, pop((t - 3.0) / 0.25), m + pw * 0.55, y2 + ph * 0.4);
     }
 
     // Stamp
-    if (t > 4.9) {
-      const s = pop((t - 4.9) / 0.3);
+    if (t > 4.6) {
+      const s = pop((t - 4.6) / 0.3);
       ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(-0.12); ctx.scale(s, s);
       ctx.font = `900 ${u * 0.95}px Impact,'Arial Black',system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const tw = Math.min(ctx.measureText("HE'S COMING FOR YOU").width, w * 0.86), bh = u * 1.4;
@@ -97,10 +93,11 @@ export class ComicReveal {
   }
 
   fallback2(ctx, x, y, pw, ph, t) {
-    this.burst(ctx, x, y, pw, ph, '#9fd0e8', '#7fb7d6');
+    this.burst(ctx, x, y, pw, ph, '#c94f3d', '#a83a2c');
     const img = this.art.jobyPortrait; if (!img) return;
-    const s = ph * 1.05, tilt = -Math.min(1, t / 0.5) * 0.28;
-    ctx.save(); ctx.translate(x + pw * 0.5, y + ph * 1.0); ctx.rotate(tilt); ctx.drawImage(img, -s / 2, -s * 0.85, s, s); ctx.restore();
+    // slow push-in on a determined Joby
+    const s = ph * (1.15 + Math.min(1, t / 3) * 0.2);
+    ctx.drawImage(img, x + pw * 0.66 - s / 2, y + ph * 0.12, s, s);
   }
 
   caption(ctx, x, y, text, u) {
@@ -129,12 +126,12 @@ export class ComicReveal {
     ctx.restore();
   }
 
-  sfxText(ctx, x, y, text, size, s, rot) {
+  sfxText(ctx, x, y, text, size, s, rot, maxW) {
     if (s <= 0) return;
     ctx.save(); ctx.translate(x, y); ctx.rotate(rot * Math.PI / 180); ctx.scale(s, s);
     ctx.font = `900 ${size}px Impact,'Arial Black',sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.lineWidth = size * 0.16; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.strokeText(text, 0, 0);
-    ctx.fillStyle = '#ffd23a'; ctx.fillText(text, 0, 0);
+    ctx.lineWidth = size * 0.16; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.strokeText(text, 0, 0, maxW);
+    ctx.fillStyle = '#ffd23a'; ctx.fillText(text, 0, 0, maxW);
     ctx.restore();
   }
 }
@@ -256,3 +253,97 @@ export class ComicWake extends ComicReveal {
     ctx.drawImage(img, 0, CAN_TOP * k, 512 * k, (512 - CAN_TOP) * k, cx - S / 2, top + CAN_TOP * scale + rise - bounce, S, (512 - CAN_TOP) * scale);
   }
 }
+
+
+// Win: a big, drawn-out melt. Shake → can bursts → Joby slumps and liquefies into a bubbling puddle.
+export class MeltScene {
+  constructor(art, lines) {
+    this.art = art; this.t = 0; this.done = false; this.fired = new Set();
+    this.scream = (lines.melt || 'NOOOOOOO!!!!!!').toUpperCase();
+    this.len = 5.6;
+    this.drips = []; this.spray = []; this.steam = [];
+    this.noise = Array.from({ length: 36 }, () => 0.4 + Math.random() * 1.2);
+    this.beats = [
+      { at: 0.0, fn: () => sfx.thump(1.2) },
+      { at: 0.9, fn: () => { sfx.noise(1.4, 0.35, 1500); sfx.thump(1.3); } },
+      { at: 1.0, fn: () => sfx.scream() },
+      { at: 4.6, fn: () => sfx.tone(140, 0.25, 'sine', 0.3, 0.5) },
+      { at: 5.0, fn: () => sfx.fanfare() },
+    ];
+  }
+  skip() { if (this.t > 1.5) this.done = true; }
+  update(dt) {
+    this.t += dt;
+    for (const b of this.beats) if (this.t >= b.at && !this.fired.has(b)) { this.fired.add(b); b.fn(); }
+    for (const a of [this.drips, this.spray, this.steam]) for (const p of a) { p.t += dt; p.vy += (p.g || 0) * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+    this.drips = this.drips.filter(p => p.t < p.life); this.spray = this.spray.filter(p => p.t < p.life); this.steam = this.steam.filter(p => p.t < p.life);
+    if (this.t >= this.len) this.done = true;
+  }
+
+  draw(ctx, w, h) {
+    const t = this.t, u = Math.min(w, h * 0.66) / 10, img = this.art.jobyPortrait;
+    const cx = w / 2, S = Math.min(w * 0.9, h * 0.5), base = h * 0.66;
+    // background: dark red with spinning rays, flashes on the burst
+    ctx.fillStyle = '#2a0608'; ctx.fillRect(0, 0, w, h);
+    ctx.save(); ctx.translate(cx, base - S * 0.45); ctx.rotate(t * 0.4);
+    ctx.fillStyle = 'rgba(200,30,30,.35)';
+    for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * h, Math.sin(a) * h); ctx.lineTo(Math.cos(a + 0.12) * h, Math.sin(a + 0.12) * h); ctx.fill(); }
+    ctx.restore();
+
+    const melt = Math.max(0, Math.min(1, (t - 1.0) / 3.4));
+    // puddle
+    const pr = S * (0.15 + melt * 0.55);
+    ctx.fillStyle = '#b8261c'; ctx.beginPath(); ctx.ellipse(cx, base + S * 0.02, pr, pr * 0.22, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#f1d27a'; ctx.beginPath(); ctx.ellipse(cx + pr * 0.15, base + S * 0.02, pr * 0.55, pr * 0.12, 0, 0, 7); ctx.fill();
+    if (melt > 0.2) for (let i = 0; i < 7; i++) { // bubbles
+      const ph = (t * 1.7 + i * 0.37) % 1, bx = cx + Math.sin(i * 7.3) * pr * 0.7, r = 3 + ph * 9;
+      ctx.strokeStyle = `rgba(255,240,200,${1 - ph})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, base - ph * 6, r, 0, 7); ctx.stroke();
+    }
+
+    if (img && t < 4.6) {
+      const shake = t < 1.0 ? (Math.random() - 0.5) * 18 * t : (Math.random() - 0.5) * 6 * (1 - melt);
+      const off = document.createElement('canvas'), W = Math.round(S), H = Math.round(S * 2.2);
+      off.width = W; off.height = H; const o = off.getContext('2d');
+      const n = this.noise.length, sw = img.width / n, dw = W / n;
+      for (let i = 0; i < n; i++) {
+        const drop = Math.pow(melt, 1.5) * S * 1.1 * this.noise[i];
+        const stretch = 1 + melt * 0.9 * this.noise[i];
+        const squash = 1 - Math.pow(melt, 2) * 0.85;               // everything sinks into the puddle
+        o.drawImage(img, i * sw, 0, sw, img.height, i * dw, drop + (1 - squash) * S, dw + 0.6, S * stretch * squash);
+      }
+      o.globalCompositeOperation = 'source-atop';
+      o.fillStyle = `rgba(120,200,60,${melt * 0.55})`; o.fillRect(0, 0, W, H);
+      o.fillStyle = `rgba(255,60,40,${Math.max(0, 0.5 - Math.abs(t - 0.9) * 2)})`; o.fillRect(0, 0, W, H);
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - Math.max(0, t - 4.0) * 1.6);
+      ctx.beginPath(); ctx.rect(0, 0, w, base + S * 0.03); ctx.clip();   // he sinks INTO the puddle
+      ctx.drawImage(off, cx - W / 2 + shake, base - S + S * 0.02);
+      ctx.restore();
+      // drips off the bottom edge
+      if (melt > 0 && Math.random() < 0.7) this.drips.push({ x: cx + (Math.random() - 0.5) * S * 0.6, y: base - S * (0.5 - melt * 0.4), vx: 0, vy: 40, g: 900, t: 0, life: 0.6, r: 3 + Math.random() * 5, c: Math.random() < 0.5 ? '#c41010' : '#f1d27a' });
+      if (t < 1.0 && Math.random() < 0.5) this.steam.push({ x: cx + (Math.random() - 0.5) * S * 0.5, y: base - S * 0.8, vx: (Math.random() - 0.5) * 30, vy: -60, t: 0, life: 1, r: 8 });
+    }
+    if (t > 0.9 && t < 1.4 && this.spray.length < 160) for (let i = 0; i < 20; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, v = 300 + Math.random() * 600;
+      this.spray.push({ x: cx, y: base - S * 0.75, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 1200, t: 0, life: 1.4, r: 3 + Math.random() * 6, c: Math.random() < 0.7 ? '#fffaf0' : '#f1d27a' }); }
+
+    // puddle surface over the sinking body
+    ctx.fillStyle = '#b8261c'; ctx.beginPath(); ctx.ellipse(cx, base + S * 0.02, pr, pr * 0.22, 0, 0, Math.PI); ctx.fill();
+    for (const p of this.steam) { ctx.fillStyle = `rgba(255,255,255,${0.35 * (1 - p.t / p.life)})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + p.t * 3), 0, 7); ctx.fill(); }
+    for (const p of [...this.drips, ...this.spray]) { ctx.fillStyle = p.c; ctx.globalAlpha = Math.min(1, (p.life - p.t) * 3); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+
+    // white flash on the burst
+    if (t > 0.88 && t < 1.15) { ctx.fillStyle = `rgba(255,255,255,${1 - (t - 0.88) / 0.27})`; ctx.fillRect(0, 0, w, h); }
+
+    // comic SFX
+    if (t < 0.95) this.sfxText(ctx, cx + S * 0.38, base - S * 0.95, '!!', u * 1.2, pop(t / 0.2), 10);
+    if (t > 0.9 && t < 2.2) this.sfxText(ctx, cx - S * 0.25, base - S * 1.02, 'PSSSHHH!', u * 1.0, pop((t - 0.9) / 0.2), -12);
+    if (t > 1.0) {
+      const grow = Math.min(1, (t - 1.0) / 3.0), jitter = (Math.random() - 0.5) * 6;
+      const label = this.scream.replace(/O+/, 'O'.repeat(3 + Math.floor(grow * 8)));
+      this.sfxText(ctx, cx + jitter, h * 0.16, label, u * (0.7 + grow * 0.5), 1, -4 + Math.sin(t * 20) * 2, w * 0.9);
+    }
+    if (t > 4.6) this.sfxText(ctx, cx, base - S * 0.25, '…blub.', u * 0.6, pop((t - 4.6) / 0.3), 0);
+    if (t > 1.5) { ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.font = `700 ${u * 0.26}px system-ui,sans-serif`; ctx.textAlign = 'right'; ctx.fillText('tap to skip', w - u * 0.4, h - u * 0.3); }
+  }
+}
+MeltScene.prototype.sfxText = ComicReveal.prototype.sfxText;

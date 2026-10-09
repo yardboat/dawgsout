@@ -7,9 +7,9 @@ import { Camera, drawWorld, drawOverlay, drawTokens, drawPlayer, drawJoby, drawO
 import { drawHUDScreen, drawVignette, drawStick, drawCard, drawBubble, hit } from './ui.js';
 import { FX } from './fx.js';
 import { Ambient } from './ambient.js';
-import { sfx } from './audio.js';
+import { sfx, music } from './audio.js';
 import { drawPortrait, drawMelt } from './cutscenes.js';
-import { ComicReveal, ComicWake } from './comic.js';
+import { ComicReveal, ComicWake, MeltScene } from './comic.js';
 
 const CORNERS = [[1, 2], [18, 2], [1, 27], [18, 27]];
 
@@ -67,14 +67,15 @@ export class Game {
     this.pulse = Math.max(0, this.pulse - dt * 3);
     if (this.wipe > 0) this.wipe -= dt;
     if (this.toast && (this.toast.t -= dt) <= 0) this.toast = null;
-    const taps = this.input.takeTaps();
+    let taps = this.input.takeTaps();
+    taps = taps.filter(t => { if (hit(this.muteBtn, t)) { music.toggleMute(); return false; } return true; });
     const tapped = taps.length > 0;
 
     if (this.debug) this.debugInput(taps);
 
     switch (this.state) {
       case 'title':
-        if (tapped) { this.newRun(); this.set('play'); }
+        if (tapped) this.begin();
         break;
 
       case 'play': {
@@ -108,7 +109,7 @@ export class Game {
           if (this.phase === 1 && this.joby.awake) this.joby.speedUp();
           if (this.words.done) {
             if (this.phase === 0) { this.set('reveal'); this.comic = new ComicReveal(this.art, this.lines); }
-            else this.set('wincut');
+            else { this.set('wincut'); this.melt = new MeltScene(this.art, this.lines); music.stop(); }
             return;
           }
         } else if (ev === 'wrong') {
@@ -120,7 +121,7 @@ export class Game {
         }
         if (this.joby.awake && this.grace <= 0 && this.maze.dist([this.player.x, this.player.y], [this.joby.x, this.joby.y]) < this.tun.catch_distance) {
           this.caughtLine = this.lines.caught[(Math.random() * this.lines.caught.length) | 0];
-          this.fx.kick(16); sfx.thump(1.2); this.danger = 0;
+          this.fx.kick(16); sfx.thump(1.2); this.danger = 0; music.stop();
           this.set('caught');
         }
         break;
@@ -133,6 +134,7 @@ export class Game {
         if (this.comic.done) {
           this.wipe = 0.5;
           this.phase = 1;
+          music.setFast(true);
           if (!this.joby.awake) this.wakeJoby();
           const L = this.maze.level;
           this.words = new Words(this.maze, this.phrases[1], L.word_spawn_candidates, [this.player.tile(), [this.joby.c, this.joby.r]], this.tun);
@@ -150,20 +152,30 @@ export class Game {
       case 'caught': {
         const T = this.maze.T;
         this.cam.ease((this.joby.x + 0.5) * T, (this.joby.y + 0.5) * T, 3, Math.min(1, dt * 5));
-        if (this.st > 1.2 && tapped) { this.newRun(); this.set('play'); }
+        if (this.st > 1.2 && tapped) this.begin();
+        break;
+      }
+
+      case 'intro': {
+        const T = this.maze.T;
+        if (this.st < 2.0) this.cam.ease(this.maze.W * T / 2, this.maze.H * T / 2, 1, Math.min(1, dt * 6));
+        else this.follow(dt * 1.6);
+        if (this.st > 2.9) { this.set('play'); this.input.reset(); }
         break;
       }
 
       case 'wincut': {
         const T = this.maze.T;
         this.cam.ease((this.joby.x + 0.5) * T, (this.joby.y + 0.5) * T, 3.5, Math.min(1, dt * 8));
-        if (this.st > 3.4) this.set('win');
+        this.melt.update(dt);
+        if (tapped) this.melt.skip();
+        if (this.melt.done) this.set('win');
         break;
       }
 
       case 'win':
-        this.fx.update(0);
-        for (const t of taps) if (t.key || hit(this.button, t)) { this.newRun(); this.set('play'); }
+        this.cam.ease(this.maze.W * this.maze.T / 2, this.maze.H * this.maze.T / 2, 1, Math.min(1, dt * 3));
+        for (const t of taps) if (t.key || hit(this.button, t)) this.begin();
         break;
     }
   }
@@ -223,6 +235,14 @@ export class Game {
     const js = () => this.cam.toWorld ? worldToScreen(this.cam, (this.joby.x + 0.5) * T, (this.joby.y + 0.5) * T) : [w / 2, h / 2];
     const u = Math.min(w, h * 0.66);
 
+    if (this.state === 'play' && this.hideout) drawHideoutPointer(ctx, w, h, this, worldToScreen);
+    if (this.state !== 'wincut') {
+      const b = 38; this.muteBtn = { x: w - b - 10, y: h - b - 10, w: b, h: b };
+      ctx.fillStyle = 'rgba(18,22,48,.7)'; ctx.beginPath(); ctx.arc(w - b / 2 - 10, h - b / 2 - 10, b / 2, 0, 7); ctx.fill();
+      ctx.font = '20px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+      ctx.fillText(music.muted ? '🔇' : '🎵', w - b / 2 - 10, h - b / 2 - 9);
+    }
+
     if (this.wipe > 0 && this.state === 'play') {
       const k = this.wipe / 0.5, edge = (1 - k) * (w + h);
       ctx.fillStyle = '#f3e7cb'; ctx.beginPath(); ctx.moveTo(edge, 0); ctx.lineTo(w + h, 0); ctx.lineTo(w + h, h); ctx.lineTo(edge - h, h); ctx.closePath(); ctx.fill();
@@ -244,12 +264,20 @@ export class Game {
         break;
       }
       case 'wincut': {
-        const [sx, sy] = js();
-        const t = Math.max(0, (this.st - 0.5) / 2.6);
-        ctx.fillStyle = `rgba(10,12,30,${Math.min(0.5, this.st)})`; ctx.fillRect(0, 0, w, h);
-        if (this.st < 0.5) drawPortrait(ctx, sx, sy, u * 0.12 + u * 0.4 * (this.st / 0.5));
-        else drawMelt(ctx, sx, sy, u * 0.52, Math.min(1, t));
-        if (this.st > 0.5) drawBubble(ctx, w, h, this.lines.melt, sx, sy - u * 0.3);
+        this.melt.draw(ctx, w, h);
+        break;
+      }
+      case 'intro': {
+        const u10 = Math.min(w, h * 0.66) / 10;
+        const txt = this.st < 2.0 ? 'FIND THE WORDS' : 'GO!';
+        const sc = this.st < 2.0 ? 1 + Math.sin(this.st * 5) * 0.03 : 1 + (this.st - 2.0) * 0.6;
+        ctx.save(); ctx.globalAlpha = this.st < 2.0 ? Math.min(1, this.st * 3) : Math.max(0, 1 - (this.st - 2.4) * 2);
+        ctx.translate(w / 2, h * 0.5); ctx.scale(sc, sc);
+        ctx.font = `900 ${u10 * (this.st < 2.0 ? 0.9 : 1.6)}px Impact,'Arial Black',system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = u10 * 0.18; ctx.strokeStyle = '#1b1b1b'; ctx.lineJoin = 'round'; ctx.strokeText(txt, 0, 0);
+        ctx.fillStyle = '#ffd23a'; ctx.fillText(txt, 0, 0);
+        if (this.st < 2.0) { ctx.font = `800 ${u10 * 0.36}px system-ui,sans-serif`; ctx.lineWidth = 4; ctx.strokeText('in order. Don\'t wake Nasty Joby.', 0, u10 * 0.8); ctx.fillStyle = '#fff'; ctx.fillText('in order. Don\'t wake Nasty Joby.', 0, u10 * 0.8); }
+        ctx.restore();
         break;
       }
       case 'win':
@@ -266,6 +294,11 @@ export class Game {
     const clamp = (v, lo, hi) => lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v));
     const fx = clamp((this.player.x + 0.5) * T, hw, WW - hw), fy = clamp((this.player.y + 0.5) * T, hh - 1.2 * T, WH - hh);
     this.cam.ease(fx, fy, Z, Math.min(1, dt * 5));
+  }
+
+  begin() {
+    this.newRun(); this.set('intro');
+    music.stop(); music.start(false);
   }
 
   tryEnterHideout() {
@@ -340,6 +373,22 @@ function drawHideout(ctx, maze, h, g, time) {
   ctx.lineWidth = 4; ctx.strokeStyle = '#1b1b1b'; ctx.strokeText(open ? 'HIDE' : inside ? 'IN' : Math.ceil(g.hideCd) + 's', x, y + T * 0.85);
   ctx.fillStyle = open ? '#ff3fa4' : '#7a6f66'; if (open) { ctx.shadowColor = '#ff3fa4'; ctx.shadowBlur = 10; }
   ctx.fillText(open ? 'HIDE' : inside ? 'IN' : Math.ceil(g.hideCd) + 's', x, y + T * 0.85); ctx.shadowBlur = 0;
+  // beacon on the street + big neon when it's available
+  if (open && g.state !== 'title') {
+    const ph = (time * 0.9) % 1, bx = x, by = (dr + 0.5) * T;
+    for (const k of [ph, (ph + 0.5) % 1]) {
+      ctx.strokeStyle = `rgba(255,63,164,${0.9 * (1 - k)})`; ctx.lineWidth = 6 * (1 - k) + 2;
+      ctx.beginPath(); ctx.ellipse(bx, by + T * 0.15, T * (0.3 + k * 0.9), T * (0.15 + k * 0.45), 0, 0, 7); ctx.stroke();
+    }
+    const pulse = 1 + Math.sin(time * 5) * 0.06;
+    ctx.save(); ctx.translate(x, y + T * 1.35); ctx.scale(pulse, pulse);
+    ctx.font = `900 ${T * 0.42}px Impact,'Arial Black',system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const lbl = 'HIDE HERE', tw = ctx.measureText(lbl).width + T * 0.3;
+    ctx.fillStyle = 'rgba(30,10,30,.85)'; ctx.fillRect(-tw / 2, -T * 0.32, tw, T * 0.64);
+    ctx.strokeStyle = '#ff3fa4'; ctx.lineWidth = 3; ctx.strokeRect(-tw / 2, -T * 0.32, tw, T * 0.64);
+    ctx.shadowColor = '#ff3fa4'; ctx.shadowBlur = 16; ctx.fillStyle = '#ffd1ec'; ctx.fillText(lbl, 0, 2); ctx.shadowBlur = 0;
+    ctx.restore();
+  }
   // arrow hint when the dawg is close
   if (open && g.state === 'play') {
     const d = maze.dist(g.player.tile(), h.door);
@@ -350,6 +399,24 @@ function drawHideout(ctx, maze, h, g, time) {
       ctx.globalAlpha = 1;
     }
   }
+  ctx.restore();
+}
+
+// When Joby is out and the hideout is off-screen, point at it from the screen edge.
+function drawHideoutPointer(ctx, w, h, g, w2s) {
+  const hd = g.hideout; if (!g.joby.awake || g.hideCd > 0 || g.hidden > 0) return;
+  const T = g.maze.T, [sx, sy] = w2s(g.cam, (hd.door[0] + 0.5) * T, (hd.door[1] + 1) * T);
+  const top = g.safeTop + Math.min(w, h * 0.66) / 10 * 1.8, pad = 34;
+  if (sx > pad && sx < w - pad && sy > top && sy < h - pad) return;
+  const cx = w / 2, cy = h / 2, ang = Math.atan2(sy - cy, sx - cx);
+  const ex = Math.min(w - pad, Math.max(pad, sx)), ey = Math.min(h - pad - 40, Math.max(top + pad, sy));
+  const p = 1 + Math.sin(g.time * 6) * 0.1;
+  ctx.save(); ctx.translate(ex, ey); ctx.scale(p, p);
+  ctx.fillStyle = 'rgba(30,10,30,.85)'; ctx.beginPath(); ctx.arc(0, 0, 24, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#ff3fa4'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.rotate(ang); ctx.fillStyle = '#ff3fa4'; ctx.beginPath(); ctx.moveTo(30, 0); ctx.lineTo(18, -9); ctx.lineTo(18, 9); ctx.closePath(); ctx.fill();
+  ctx.rotate(-ang); ctx.fillStyle = '#ffd1ec'; ctx.font = '900 10px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('HIDE', 0, 0);
   ctx.restore();
 }
 
