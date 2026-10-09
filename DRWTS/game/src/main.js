@@ -24,7 +24,7 @@ try {
   const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
   const [bg, jobySprite, jobyPortrait, walk, front, win, occluder] = await Promise.all([level.background ? img(level.background) : null, img('assets/joby_sprite.png'), img('assets/joby_portrait.png'), img('assets/dawg_walk.png'), img('assets/dawg_front.png'), img('assets/dawg_win.png'), img('assets/map_occluder.png')]);
   if (jobyPortrait) setPortrait(jobyPortrait);
-  const panelKeys = ['reveal_1', 'reveal_2'];
+  const panelKeys = ['reveal_1', 'reveal_2', 'wake_1', 'wake_2'];
   const panelImgs = await Promise.all(panelKeys.map(k => img(`assets/panels/${k}.png`)));
   const panels = Object.fromEntries(panelKeys.map((k, i) => [k, panelImgs[i]]).filter(([, v]) => v));
   const input = new Input(canvas);

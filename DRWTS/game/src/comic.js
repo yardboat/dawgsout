@@ -138,3 +138,121 @@ export class ComicReveal {
     ctx.restore();
   }
 }
+
+// Early wake-up: Joby bolts out of bed ("WHAT are you DOING?!") and pulls on his beer can.
+const HEAD = [180, 22, 160, 108];   // head crop in joby_portrait.png (512²)
+const CAN_TOP = 116;                // can starts here in the portrait
+
+export class ComicWake extends ComicReveal {
+  constructor(art, lines) {
+    super(art, lines);
+    this.yell = lines.wake || 'WHAT are you DOING?!';
+    this.beats = [
+      { at: 0.05, fn: () => sfx.thump(0.6) },
+      { at: 0.9, fn: () => { sfx.thump(1.1); sfx.wrong(); } },
+      { at: 2.5, fn: () => sfx.thump(0.8) },
+      { at: 3.25, fn: () => sfx.glug() },
+      { at: 3.55, fn: () => sfx.door() },
+      { at: 4.3, fn: () => sfx.thump(1.1) },
+    ];
+    this.len = 5.6;
+  }
+
+  draw(ctx, w, h) {
+    const t = this.t, u = Math.min(w, h * 0.66) / 10;
+    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(160,110,60,.10)';
+    for (let y = 0; y < h; y += 9) for (let x = (y / 9) % 2 ? 4 : 0; x < w; x += 9) { ctx.beginPath(); ctx.arc(x, y, 1.3, 0, 7); ctx.fill(); }
+    const m = u * 0.35, pw = w - m * 2, gap = u * 0.3;
+    const ph = Math.min((h - m * 3 - gap) / 2, pw * 0.95);
+    const y1 = (h - (ph * 2 + gap)) / 2, y2 = y1 + ph + gap;
+
+    const k1 = ease(t / 0.3);
+    this.panel(ctx, m - (1 - k1) * w, y1, pw, ph, -1.2, 'wake_1', (c, x, y, a, b) => this.bed(c, x, y, a, b, t));
+    if (t > 0.15) this.caption(ctx, m + u * 0.25 - (1 - k1) * w, y1 + u * 0.2, 'SOMEONE GRABBED THE WRONG WORD…', u);
+    if (t < 0.9 && t > 0.2) ['Z', 'z', 'z'].forEach((z, i) => this.sfxText(ctx, m + pw * (0.62 + i * 0.08), y1 + ph * (0.42 - i * 0.09) - (t * 12 % 8), z, u * (0.7 - i * 0.12), 1, -10));
+    if (t > 0.95) this.bubble(ctx, m + pw * 0.36, y1 + ph * 0.3, pw * 0.62, this.yell, u * 1.1, pop((t - 0.95) / 0.25), m + pw * 0.6, y1 + ph * 0.52);
+
+    if (t > 2.5) {
+      const k2 = ease((t - 2.5) / 0.3);
+      this.panel(ctx, m + (1 - k2) * w, y2, pw, ph, 1.0, 'wake_2', (c, x, y, a, b) => this.suitUp(c, x, y, a, b, t - 2.5));
+      if (t > 3.55) this.sfxText(ctx, m + pw * 0.24, y2 + ph * 0.3, 'SHLOOMP!', u * 0.85, pop((t - 3.55) / 0.25), -10);
+      if (t > 3.8) this.sfxText(ctx, m + pw * 0.8, y2 + ph * 0.62, 'CLANK!', u * 0.75, pop((t - 3.8) / 0.25), 12);
+    }
+    if (t > 4.3) {
+      const s = pop((t - 4.3) / 0.3);
+      ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(-0.12); ctx.scale(s, s);
+      ctx.font = `900 ${u * 0.95}px Impact,'Arial Black',system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const label = 'NASTY JOBY IS UP!', tw = Math.min(ctx.measureText(label).width, w * 0.86), bh = u * 1.4;
+      ctx.fillStyle = 'rgba(200,20,20,.92)'; ctx.fillRect(-tw / 2 - u * 0.3, -bh / 2, tw + u * 0.6, bh);
+      ctx.strokeStyle = PAPER; ctx.lineWidth = 4; ctx.strokeRect(-tw / 2 - u * 0.15, -bh / 2 + u * 0.15, tw + u * 0.3, bh - u * 0.3);
+      ctx.fillStyle = PAPER; ctx.fillText(label, 0, 3, w * 0.86);
+      ctx.restore();
+    }
+    if (t > 1) { ctx.fillStyle = 'rgba(29,20,14,.5)'; ctx.font = `700 ${u * 0.26}px system-ui,sans-serif`; ctx.textAlign = 'right'; ctx.fillText('tap to skip', w - m, h - m * 0.6); }
+  }
+
+  head(ctx, cx, cy, size, rot = 0) {
+    const img = this.art.jobyPortrait; if (!img) return;
+    const [sx, sy, sw, sh] = HEAD, k = img.width / 512, hw = size, hh = size * sh / sw;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot);
+    ctx.drawImage(img, sx * k, sy * k, sw * k, sh * k, -hw / 2, -hh / 2, hw, hh);
+    ctx.restore();
+  }
+
+  // Panel 1 fallback: night bedroom, asleep → bolt upright.
+  bed(ctx, x, y, pw, ph, t) {
+    ctx.fillStyle = '#26315e'; ctx.fillRect(x, y, pw, ph);
+    // window + moon
+    ctx.fillStyle = '#3d4c8a'; ctx.fillRect(x + pw * 0.06, y + ph * 0.2, pw * 0.22, ph * 0.3);
+    ctx.fillStyle = '#f8eec6'; ctx.beginPath(); ctx.arc(x + pw * 0.2, y + ph * 0.3, ph * 0.06, 0, 7); ctx.fill();
+    ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.strokeRect(x + pw * 0.06, y + ph * 0.2, pw * 0.22, ph * 0.3);
+    ctx.beginPath(); ctx.moveTo(x + pw * 0.17, y + ph * 0.2); ctx.lineTo(x + pw * 0.17, y + ph * 0.5); ctx.stroke();
+    // floor
+    ctx.fillStyle = '#5a3d2b'; ctx.fillRect(x, y + ph * 0.8, pw, ph * 0.2);
+    // bed
+    const bx = x + pw * 0.3, by = y + ph * 0.55, bw = pw * 0.62, bh = ph * 0.3;
+    ctx.fillStyle = '#8a5a3a'; ctx.fillRect(bx + bw - 14, by - ph * 0.22, 14, bh + ph * 0.22); ctx.strokeRect(bx + bw - 14, by - ph * 0.22, 14, bh + ph * 0.22);
+    ctx.fillStyle = '#efe6d2'; ctx.fillRect(bx, by, bw - 14, bh * 0.45); ctx.strokeRect(bx, by, bw - 14, bh * 0.45);
+    ctx.fillStyle = '#8a5a3a'; ctx.fillRect(bx, by + bh * 0.45, bw - 14, bh * 0.55); ctx.strokeRect(bx, by + bh * 0.45, bw - 14, bh * 0.55);
+    const awake = t > 0.9, jolt = awake ? Math.max(0, 1 - (t - 0.9) * 3) : 0;
+    // pillow
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(bx + bw * 0.78, by - 2, bw * 0.13, bh * 0.22, 0, 0, 7); ctx.fill(); ctx.stroke();
+    // blanket (thrown off when awake)
+    ctx.save(); ctx.translate(bx + bw * 0.35, by + 4); ctx.rotate(awake ? -0.5 * Math.min(1, (t - 0.9) * 5) : 0);
+    ctx.fillStyle = '#4a7bb5'; ctx.fillRect(-bw * 0.35, -bh * 0.25, bw * 0.75, bh * 0.5); ctx.strokeRect(-bw * 0.35, -bh * 0.25, bw * 0.75, bh * 0.5);
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 2;
+    for (let i = 1; i < 6; i++) { ctx.beginPath(); ctx.moveTo(-bw * 0.35 + i * bw * 0.125, -bh * 0.25); ctx.lineTo(-bw * 0.35 + i * bw * 0.125, bh * 0.25); ctx.stroke(); }
+    ctx.restore();
+    if (!awake) {
+      this.head(ctx, bx + bw * 0.74, by - bh * 0.18, ph * 0.38, -Math.PI / 2 + 0.15 + Math.sin(t * 3) * 0.03);
+    } else {
+      const shake = Math.sin(t * 70) * 6 * (0.3 + jolt);
+      // pajama body sitting bolt upright
+      ctx.fillStyle = '#c94f3d'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+      ctx.fillRect(bx + bw * 0.62 + shake, by - ph * 0.14, bw * 0.18, ph * 0.18); ctx.strokeRect(bx + bw * 0.62 + shake, by - ph * 0.14, bw * 0.18, ph * 0.18);
+      this.head(ctx, bx + bw * 0.71 + shake, by - ph * 0.25 - jolt * ph * 0.08, ph * 0.34, Math.sin(t * 40) * 0.05);
+      // shock lines
+      ctx.strokeStyle = '#ffd23a'; ctx.lineWidth = 4;
+      for (let i = 0; i < 7; i++) { const a = -Math.PI * (0.15 + i * 0.12), cx = bx + bw * 0.71, cy = by - ph * 0.27, r1 = ph * 0.22, r2 = ph * 0.32;
+        ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); ctx.stroke(); }
+    }
+  }
+
+  // Panel 2 fallback: pulls the beer can up over the pajamas.
+  suitUp(ctx, x, y, pw, ph, t) {
+    this.burst(ctx, x, y, pw, ph, '#f6c444', '#ef9a2e');
+    const img = this.art.jobyPortrait; if (!img) return;
+    const k = img.width / 512, S = ph * 1.15, cx = x + pw * 0.5, top = y + ph * 0.02;
+    const scale = S / 512, headCy = top + (HEAD[1] + HEAD[3] / 2) * scale;
+    // pajama body
+    ctx.fillStyle = '#c94f3d'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.fillRect(cx - S * 0.13, top + CAN_TOP * scale, S * 0.26, ph); ctx.strokeRect(cx - S * 0.13, top + CAN_TOP * scale, S * 0.26, ph);
+    this.head(ctx, cx, headCy, HEAD[2] * scale, 0);
+    // the can rises from below and lands at the chin
+    const land = Math.min(1, Math.max(0, (t - 0.55) / 0.5)), e = 1 - Math.pow(1 - land, 3);
+    const rise = (1 - e) * ph * 0.9 + (land >= 1 ? 0 : 0);
+    const bounce = land >= 1 ? Math.sin(Math.min(1, (t - 1.05) * 4) * Math.PI) * 6 * Math.max(0, 1 - (t - 1.05) * 3) : 0;
+    ctx.drawImage(img, 0, CAN_TOP * k, 512 * k, (512 - CAN_TOP) * k, cx - S / 2, top + CAN_TOP * scale + rise - bounce, S, (512 - CAN_TOP) * scale);
+  }
+}

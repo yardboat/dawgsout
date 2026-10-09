@@ -9,7 +9,7 @@ import { FX } from './fx.js';
 import { Ambient } from './ambient.js';
 import { sfx } from './audio.js';
 import { drawPortrait, drawMelt } from './cutscenes.js';
-import { ComicReveal } from './comic.js';
+import { ComicReveal, ComicWake } from './comic.js';
 
 const CORNERS = [[1, 2], [18, 2], [1, 27], [18, 27]];
 
@@ -115,7 +115,7 @@ export class Game {
           const tk = this.words.tokens.find(k => k.flash > 0.55), T = this.maze.T;
           if (tk) this.fx.ring((tk.c + 0.5) * T, (tk.r + 0.5) * T);
           this.fx.kick(12); this.stun = 0.3; sfx.wrong();
-          if (!this.joby.awake) { this.wakeJoby(); this.say('WRONG WORD! NASTY JOBY WOKE UP', '#ff4a4a'); }
+          if (!this.joby.awake) { this.wakeJoby(); this.comic = new ComicWake(this.art, this.lines); this.set('wake'); this.input.reset(); break; }
           else { this.joby.speedUp(); this.say('WRONG WORD! JOBY SPEEDS UP', '#ff4a4a'); }
         }
         if (this.joby.awake && this.grace <= 0 && this.maze.dist([this.player.x, this.player.y], [this.joby.x, this.joby.y]) < this.tun.catch_distance) {
@@ -139,6 +139,12 @@ export class Game {
           this.input.reset();
           this.set('play');
         }
+        break;
+
+      case 'wake':
+        this.comic.update(dt);
+        if (tapped) this.comic.skip();
+        if (this.comic.done) { this.wipe = 0.5; this.grace = 1.0; this.input.reset(); this.set('play'); this.say('NASTY JOBY IS HUNTING YOU', '#ff4a4a'); }
         break;
 
       case 'caught': {
@@ -228,6 +234,7 @@ export class Game {
         drawCard(ctx, w, h, { title: 'DAWGS OUT', lines: ['Grab the words of the chant in order.', 'Wrong word wakes up Nasty Joby.', 'Swipe / drag (or arrow keys) to move.'], button: 'TAP TO PLAY', image: this.art.front });
         break;
       case 'reveal':
+      case 'wake':
         this.comic.draw(ctx, w, h);
         break;
       case 'caught': {

@@ -12,6 +12,12 @@ A single comic-book panel, hand-inked cartoon with loose watercolor fill, matchi
 ## reveal_2.png: the pull
 [shared block] Same night street. Joby tilts his head way back and chugs from the small beer can in his hand, eyes squeezed shut, foam spilling down his chin, free hand balled into a fist. Close-up, slightly from below, dramatic. Little droplets flying.
 
+## wake_1.png: woken early, "WHAT are you DOING?!"
+[shared block, but WITHOUT the beer can: Joby is in striped red pajamas] Night bedroom with a moonlit window. Joby has just bolted upright in bed, blanket flying off, hair wild, eyes bulging, mouth wide open mid-yell, pointing at the viewer. Shock lines around his head. Wide shot of the bed.
+
+## wake_2.png: suiting up
+[shared block] Same bedroom. Joby, still in pajama sleeves, is yanking the giant beer-can costume up over his body like a pair of pants, gritting his teeth, one leg still lifted. The can is halfway up, his head and furious face poking out the top. Dynamic, slightly from below.
+
 ## caught.png (optional, for the "caught" moment)
 [shared block] Joby leaning right into the camera with a smug, nasty grin, raising his small beer can in a mocking toast. Extreme close-up, fish-eye feel.
 
