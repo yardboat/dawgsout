@@ -1,6 +1,6 @@
 // Global leaderboard. Each score is its own tiny blob whose pathname encodes time + name,
 // so writes never collide and reads are a single list() call.
-import { put, list } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 
 const PREFIX = 'scores/';
 const clean = s => String(s || '').toUpperCase().replace(/[^A-Z0-9 .'!?-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 12);
@@ -42,7 +42,14 @@ export default async function handler(req, res) {
       const rank = scores.findIndex(s => s.at === at && s.name === name && s.ms === ms) + 1;
       return res.status(200).json({ scores: scores.slice(0, 10), total: scores.length, rank, me: { ms, name, at } });
     }
-    res.setHeader('Allow', 'GET, POST');
+    if (req.method === 'DELETE') {   // only clears the reserved test name, so nobody can wipe real scores
+      const blobs = []; let cursor;
+      do { const r = await list({ prefix: PREFIX, cursor, limit: 1000, ...auth }); blobs.push(...r.blobs); cursor = r.hasMore ? r.cursor : null; } while (cursor);
+      const test = blobs.filter(b => b.pathname.includes('_ZZTEST_'));
+      if (test.length) await del(test.map(b => b.url), auth);
+      return res.status(200).json({ deleted: test.length });
+    }
+    res.setHeader('Allow', 'GET, POST, DELETE');
     return res.status(405).json({ error: 'method not allowed' });
   } catch (e) {
     return res.status(500).json({ error: String(e && e.message || e) });
