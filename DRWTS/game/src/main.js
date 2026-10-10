@@ -22,14 +22,14 @@ const load = p => fetch(p, { cache: 'no-cache' }).then(r => { if (!r.ok) throw n
 try {
   const [level, phrases, lines] = await Promise.all([load('data/level.json'), load('data/phrases.json'), load('data/joby_lines.json')]);
   const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
-  const [bg, jobySprite, jobyPortrait, walk, front, win, occluder] = await Promise.all([level.background ? img(level.background) : null, img('assets/joby_sprite.png'), img('assets/joby_portrait.png'), img('assets/dawg_walk.png'), img('assets/dawg_front.png'), img('assets/dawg_win.png'), img('assets/map_occluder.png')]);
+  const [bg, jobySprite, jobyPortrait, walk, front, win, occluder, jobyCan] = await Promise.all([level.background ? img(level.background) : null, img('assets/joby_sprite.png'), img('assets/joby_portrait.png'), img('assets/dawg_walk.png'), img('assets/dawg_front.png'), img('assets/dawg_win.png'), img('assets/map_occluder.png'), img('assets/joby_can_only.png')]);
   if (jobyPortrait) setPortrait(jobyPortrait);
   const panelKeys = ['reveal_1', 'reveal_2', 'wake_1', 'wake_2', 'toppers'];
   const panelImgs = await Promise.all(panelKeys.map(async k => (await img(`assets/panels/${k}.jpg`)) || img(`assets/panels/${k}.png`)));
   const panels = Object.fromEntries(panelKeys.map((k, i) => [k, panelImgs[i]]).filter(([, v]) => v));
   const input = new Input(canvas);
   input.mouseDebug = debug;
-  const game = new Game(level, phrases, lines, input, debug, bg, { joby: jobySprite, jobyPortrait, panels, walk, front, win, occluder });
+  const game = new Game(level, phrases, lines, input, debug, bg, { joby: jobySprite, jobyPortrait, panels, walk, front, win, occluder, jobyCan });
   window.game = game; // handy in the console
   const probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden';
   document.body.appendChild(probe); game.safeTop = probe.offsetHeight || 0;
