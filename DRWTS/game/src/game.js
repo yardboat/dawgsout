@@ -200,7 +200,7 @@ export class Game {
     const occ = this.art.occluder;
     const showPlayer = !(this.hidden > 0) && !(this.grace > 0 && Math.floor(this.time * 12) % 2);
     const actors = [[this.player.y, () => { if (!showPlayer) return; drawPlayer(ctx, this.maze, this.player, this.art, this.time); drawOccluder(ctx, occ, this.maze, this.player.x, this.player.y, 0.95); }]];
-    if (jobyVisible) actors.push([this.joby.y, () => { drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time); if (this.hidden > 0) drawHuh(ctx, this.maze, this.joby, this.time); drawOccluder(ctx, occ, this.maze, this.joby.x, this.joby.y, 0.7); }]);
+    if (jobyVisible) actors.push([this.joby.y, () => { drawJoby(ctx, this.maze, this.joby, this.art.joby, this.time); if (this.hidden > 0) drawHuh(ctx, this.maze, this.joby, this.time); drawOccluder(ctx, occ, this.maze, this.joby.x, this.joby.y, 0.85); }]);
     actors.sort((a, b) => a[0] - b[0]).forEach(a => a[1]());
     drawOverlay(ctx, this.maze, this.bg);
     this.amb.drawSky(ctx);

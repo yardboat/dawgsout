@@ -119,7 +119,7 @@ export function drawJoby(ctx, maze, j, sprite, time = 0) {
   drawWrapped(ctx, maze, j.x, (x) => {
     const cx = (x + 0.5) * T, cy = (j.y + 0.5) * T;
     if (sprite) {
-      const h = T * 1.6, w = h * sprite.width / sprite.height;
+      const h = T * 2.0, w = h * sprite.width / sprite.height;
       const bob = Math.abs(Math.sin(time * 10)) * T * 0.06, flip = j.dir.dx < 0;
       ctx.save(); ctx.translate(cx, cy + T * 0.45 - bob); if (flip) ctx.scale(-1, 1);
       ctx.drawImage(sprite, -w / 2, -h, w, h); ctx.restore();
