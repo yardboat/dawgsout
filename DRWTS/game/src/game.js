@@ -253,7 +253,7 @@ export class Game {
 
     switch (this.state) {
       case 'title':
-        drawCard(ctx, w, h, { title: 'DAWGS OUT', lines: ['Grab the words of the chant in order.', 'Wrong word wakes up Nasty Joby.', 'Swipe / drag (or arrow keys) to move.'], button: 'TAP TO PLAY', image: this.art.front });
+        drawCard(ctx, w, h, { title: 'DAWGS OUT', button: 'TAP TO PLAY', image: this.art.front });
         break;
       case 'reveal':
       case 'wake':
