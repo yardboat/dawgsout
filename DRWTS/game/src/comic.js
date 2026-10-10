@@ -222,20 +222,14 @@ export class ComicWake extends ComicReveal {
   constructor(art, lines) {
     super(art, lines);
     this.yell = lines.wake || 'WHAT are you DOING?!';
-    // Bottom panel: Joby leaping out of bed (Gemini 'wake_1b'), then a smash-cut to him hauling on the can.
-    this.hasLeap = !!(art.panels && art.panels.wake_1b);
-    const D = this.D = this.hasLeap ? 1.5 : 0;
+    const D = this.D = 0;
     this.beats = [
       { at: 0.05, fn: () => sfx.thump(0.6) },
       { at: 0.9, fn: () => { sfx.thump(1.1); sfx.wrong(); } },
       { at: 2.5, fn: () => sfx.thump(0.8) },
-      { at: 2.75, fn: () => { if (this.hasLeap) sfx.noise(0.35, 0.25, 600); } },
-      { at: 2.5 + D, fn: () => { if (this.hasLeap) sfx.thump(0.9); } },
-      { at: 3.25 + D, fn: () => sfx.glug() },
-      { at: 3.55 + D, fn: () => sfx.door() },
-      { at: 4.3 + D, fn: () => sfx.thump(1.1) },
+      { at: 3.6, fn: () => sfx.thump(1.1) },
     ];
-    this.len = 5.6 + D;
+    this.len = 4.9;
   }
 
   draw(ctx, w, h) {
@@ -260,25 +254,10 @@ export class ComicWake extends ComicReveal {
     if (t < 0.9 && t > 0.2) ['Z', 'z', 'z'].forEach((z, i) => this.sfxText(ctx, m + pw * (0.62 + i * 0.08), y1 + ph * (0.42 - i * 0.09) - (t * 12 % 8), z, u * (0.7 - i * 0.12), 1, -10));
     if (t > 0.95) this.bubble(ctx, m + pw * 0.3, y1 + ph * 0.36, pw * 0.5, this.yell, u * 1.05, pop((t - 0.95) / 0.25), m + pw * 0.6, y1 + ph * 0.52);
 
-    // BOTTOM: leap out of bed, then smash-cut to pulling on the can
-    if (t > 2.5) {
-      const lt = t - 2.5;
-      if (this.hasLeap && lt < D) {
-        const k2 = ease(lt / 0.3);
-        this.panel(ctx, m + (1 - k2) * w, y2, pw, ph, 1.0, 'wake_1b', () => {}, lt, k2, 1, { focus: 0.6, lines: lt > 0.25 ? 'focus' : 'none', fx: 0.6, fy: 0.36 });
-        if (lt > 0.25) this.sfxText(ctx, m + pw * 0.22, y2 + ph * 0.66, 'FWOOMP!', u * 0.85, pop((lt - 0.25) / 0.2), -14);
-      } else {
-        const st = lt - D, k2 = this.hasLeap ? 1 : ease(st / 0.3);
-        this.panel(ctx, m + (1 - k2) * w, y2, pw, ph, 1.0, 'wake_2', (c, x, y, a, b) => this.suitUp(c, x, y, a, b, st), st + (this.hasLeap ? 0.4 : 0), k2, 1, {
-          lines: st > 0.5 && st < 1.1 ? 'speed-v' : st >= 1.1 ? 'focus' : 'none', fx: 0.5, fy: 0.3,
-          after: (c, a, b) => { if (this.hasLeap && st < 0.2) { c.fillStyle = `rgba(255,255,255,${0.9 * (1 - st / 0.2)})`; c.fillRect(0, 0, a, b); } },
-        });
-        if (st > 1.05) this.sfxText(ctx, m + pw * 0.24, y2 + ph * 0.3, 'SHLOOMP!', u * 0.85, pop((st - 1.05) / 0.25), -10);
-        if (st > 1.3) this.sfxText(ctx, m + pw * 0.8, y2 + ph * 0.62, 'CLANK!', u * 0.75, pop((st - 1.3) / 0.25), 12);
-      }
-    }
-    if (t > 4.3 + D) {
-      const s = pop((t - 4.3 - D) / 0.3);
+    // BOTTOM: he's simply in the can now. No transition, no motion.
+    if (t > 2.5) this.panel(ctx, m, y2, pw, ph, 1.0, 'wake_2', (c, x, y, a, b) => this.suitUp(c, x, y, a, b, 99), 99, 1, 1, { lines: 'none' });
+    if (t > 3.6) {
+      const s = pop((t - 3.6) / 0.3);
       ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(-0.12); ctx.scale(s, s);
       ctx.font = `900 ${u * 0.95}px Impact,'Arial Black',system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const label = 'NASTY JOBY IS UP!', tw = Math.min(ctx.measureText(label).width, w * 0.86), bh = u * 1.4;
