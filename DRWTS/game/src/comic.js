@@ -6,7 +6,7 @@ const PAPER = '#f3e7cb', INK = '#1d140e';
 const FRAMING = {
   reveal_1: { focus: 0.57, fill: 0.66, bg: '#121833', lines: 'focus', fx: 0.6, fy: 0.55, bokeh: true },
   reveal_2: { focus: 0.6, fill: 1, lines: 'speed-h', bokeh: true },
-  wake_1: { focus: 0.5, fill: 1, lines: 'focus', fx: 0.6, fy: 0.4 },
+  wake_1: { focus: 0.62, fill: 1, lines: 'focus', fx: 0.66, fy: 0.42 },
   wake_2: { focus: 0.5, fill: 1, lines: 'speed-v' },
   toppers: { focus: 0.55, fill: 1, bg: '#121833', lines: 'focus', fx: 0.47, fy: 0.42, bokeh: true },
 };
@@ -95,6 +95,7 @@ export class ComicReveal {
       ctx.drawImage(img, ix, ph - ih + Math.min(1, pt / 5) * ph * 0.02, iw, ih);
     } else fallback(ctx, 0, 0, pw, ph);
     // foreground layers move faster than the background → depth
+    if (f.after) f.after(ctx, pw, ph, pt);
     if (f.bokeh) this.bokeh(ctx, pw, ph, pt, key);
     if (f.lines === 'focus') this.focusLines(ctx, pw, ph, f.fx * pw, f.fy * ph, pt);
     if (f.lines === 'speed-h') this.speedLines(ctx, pw, ph, pt, 'h');
@@ -242,7 +243,14 @@ export class ComicWake extends ComicReveal {
     const y1 = (h - (ph * 2 + gap)) / 2, y2 = y1 + ph + gap;
 
     const k1 = ease(t / 0.3);
-    this.panel(ctx, m - (1 - k1) * w, y1, pw, ph, -1.2, 'wake_1', (c, x, y, a, b) => this.bed(c, x, y, a, b, t), t, k1, -1, { lines: t > 0.9 ? 'focus' : 'none' });
+    this.panel(ctx, m - (1 - k1) * w, y1, pw, ph, -1.2, 'wake_1', (c, x, y, a, b) => this.bed(c, x, y, a, b, t), t, k1, -1, {
+      lines: t > 0.9 ? 'focus' : 'none',
+      // With the Gemini art: the room sits in darkness while he snores, then a white flash as he bolts up.
+      after: (c, a, b, pt) => {
+        if (pt < 0.9) { c.fillStyle = 'rgba(8,10,28,.82)'; c.fillRect(0, 0, a, b); }
+        else if (pt < 1.15) { c.fillStyle = `rgba(255,255,255,${0.85 * (1 - (pt - 0.9) / 0.25)})`; c.fillRect(0, 0, a, b); }
+      },
+    });
     if (t > 0.15) this.caption(ctx, m + u * 0.25 - (1 - k1) * w, y1 + u * 0.2, 'SOMEONE GRABBED THE WRONG WORD…', u);
     if (t < 0.9 && t > 0.2) ['Z', 'z', 'z'].forEach((z, i) => this.sfxText(ctx, m + pw * (0.62 + i * 0.08), y1 + ph * (0.42 - i * 0.09) - (t * 12 % 8), z, u * (0.7 - i * 0.12), 1, -10));
     if (t > 0.95) this.bubble(ctx, m + pw * 0.3, y1 + ph * 0.36, pw * 0.5, this.yell, u * 1.05, pop((t - 0.95) / 0.25), m + pw * 0.6, y1 + ph * 0.52);
