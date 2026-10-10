@@ -8,7 +8,7 @@ const clean = s => String(s || '').toUpperCase().replace(/[^A-Z0-9 .'!?-]/g, '')
 async function all() {
   const out = []; let cursor;
   do {
-    const r = await list({ prefix: PREFIX, cursor, limit: 1000, token });
+    const r = await list({ prefix: PREFIX, cursor, limit: 1000, ...auth });
     out.push(...r.blobs); cursor = r.hasMore ? r.cursor : null;
   } while (cursor && out.length < 10000);
   return out.map(b => {
@@ -19,11 +19,12 @@ async function all() {
 
 // Vercel names the token after the store's env prefix (BLOB_READ_WRITE_TOKEN by default); accept any *_READ_WRITE_TOKEN.
 const tokenKey = Object.keys(process.env).find(k => k === 'BLOB_READ_WRITE_TOKEN') || Object.keys(process.env).find(k => /READ_WRITE_TOKEN$/.test(k));
-const token = tokenKey && process.env[tokenKey];
+const token = (tokenKey && process.env[tokenKey]) || undefined;  // otherwise the SDK uses OIDC + BLOB_STORE_ID
+const auth = token ? { token } : {};
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-  if (!token) return res.status(503).json({ error: 'leaderboard storage not connected', env: Object.keys(process.env).filter(k => /BLOB|STORE|TOKEN/i.test(k)) });
+  if (!token && !process.env.BLOB_STORE_ID) return res.status(503).json({ error: 'leaderboard storage not connected', env: Object.keys(process.env).filter(k => /BLOB|STORE|TOKEN/i.test(k)) });
   try {
     if (req.method === 'GET') {
       const scores = await all();
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
       if (!(ms >= 10000 && ms <= 3600000)) return res.status(400).json({ error: 'time out of range' });
       const at = Date.now();
       await put(`${PREFIX}${String(ms).padStart(8, '0')}_${encodeURIComponent(name)}_${at.toString(36)}.txt`, '1',
-        { access: 'public', addRandomSuffix: false, contentType: 'text/plain', token });
+        { access: 'public', addRandomSuffix: false, contentType: 'text/plain', ...auth });
       const scores = await all();
       const rank = scores.findIndex(s => s.at === at && s.name === name && s.ms === ms) + 1;
       return res.status(200).json({ scores: scores.slice(0, 10), total: scores.length, rank, me: { ms, name, at } });
