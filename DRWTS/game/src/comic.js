@@ -225,16 +225,23 @@ export class ComicWake extends ComicReveal {
     this.beats = [
       { at: 0.05, fn: () => sfx.thump(0.6) },
       { at: 0.9, fn: () => { sfx.thump(1.1); sfx.wrong(); } },
-      { at: 2.5, fn: () => sfx.thump(0.8) },
-      { at: 3.25, fn: () => sfx.glug() },
-      { at: 3.55, fn: () => sfx.door() },
-      { at: 4.3, fn: () => sfx.thump(1.1) },
+      { at: 2.1, fn: () => { if (this.hasLeap) { sfx.noise(0.35, 0.25, 600); sfx.thump(0.9); } } },
     ];
-    this.len = 5.6;
+    // Optional middle beat: Joby leaping out of bed (Gemini 'wake_1b'). Everything after it shifts later.
+    this.hasLeap = !!(art.panels && art.panels.wake_1b);
+    const D = this.D = this.hasLeap ? 1.1 : 0;
+    this.beats.push(
+      { at: 2.5 + D, fn: () => sfx.thump(0.8) },
+      { at: 3.25 + D, fn: () => sfx.glug() },
+      { at: 3.55 + D, fn: () => sfx.door() },
+      { at: 4.3 + D, fn: () => sfx.thump(1.1) });
+    this.len = 5.6 + D;
   }
 
   draw(ctx, w, h) {
-    const t = this.t, u = Math.min(w, h * 0.66) / 10;
+    const T = this.t, D = this.D, CUT = 2.1, u = Math.min(w, h * 0.66) / 10;
+    // after the leap beat, panel-2 timing runs D seconds late
+    const t = T < CUT ? T : (T < CUT + D ? CUT : T - D), leap = this.hasLeap && T >= CUT;
     ctx.fillStyle = PAPER; ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = 'rgba(160,110,60,.10)';
     for (let y = 0; y < h; y += 9) for (let x = (y / 9) % 2 ? 4 : 0; x < w; x += 9) { ctx.beginPath(); ctx.arc(x, y, 1.3, 0, 7); ctx.fill(); }
@@ -242,8 +249,17 @@ export class ComicWake extends ComicReveal {
     const ph = Math.min((h - m * 3 - gap) / 2, pw * 0.95);
     const y1 = (h - (ph * 2 + gap)) / 2, y2 = y1 + ph + gap;
 
-    const k1 = ease(t / 0.3);
-    this.panel(ctx, m - (1 - k1) * w, y1, pw, ph, -1.2, 'wake_1', (c, x, y, a, b) => this.bed(c, x, y, a, b, t), t, k1, -1, {
+    const k1 = ease(T / 0.3);
+    if (leap) {
+      // Smash-cut inside panel 1: he leaps out of bed.
+      const lt = T - CUT;
+      this.panel(ctx, m, y1, pw, ph, -1.2, 'wake_1b', () => {}, lt + 0.4, 1, -1, {
+        focus: 0.6, lines: 'focus', fx: 0.6, fy: 0.36,
+        after: (c, a, b, pt) => { const f = 1 - (pt - 0.4) / 0.2; if (f > 0) { c.fillStyle = `rgba(255,255,255,${0.9 * f})`; c.fillRect(0, 0, a, b); } },
+      });
+      this.caption(ctx, m + u * 0.25, y1 + u * 0.2, 'SOMEONE GRABBED THE WRONG WORD…', u);
+      this.sfxText(ctx, m + pw * 0.22, y1 + ph * 0.66, 'FWOOMP!', u * 0.85, pop(lt / 0.2), -14);
+    } else this.panel(ctx, m - (1 - k1) * w, y1, pw, ph, -1.2, 'wake_1', (c, x, y, a, b) => this.bed(c, x, y, a, b, t), t, k1, -1, {
       lines: t > 0.9 ? 'focus' : 'none',
       // With the Gemini art: the room sits in darkness while he snores, then a white flash as he bolts up.
       after: (c, a, b, pt) => {
@@ -251,9 +267,11 @@ export class ComicWake extends ComicReveal {
         else if (pt < 1.15) { c.fillStyle = `rgba(255,255,255,${0.85 * (1 - (pt - 0.9) / 0.25)})`; c.fillRect(0, 0, a, b); }
       },
     });
-    if (t > 0.15) this.caption(ctx, m + u * 0.25 - (1 - k1) * w, y1 + u * 0.2, 'SOMEONE GRABBED THE WRONG WORD…', u);
-    if (t < 0.9 && t > 0.2) ['Z', 'z', 'z'].forEach((z, i) => this.sfxText(ctx, m + pw * (0.62 + i * 0.08), y1 + ph * (0.42 - i * 0.09) - (t * 12 % 8), z, u * (0.7 - i * 0.12), 1, -10));
-    if (t > 0.95) this.bubble(ctx, m + pw * 0.3, y1 + ph * 0.36, pw * 0.5, this.yell, u * 1.05, pop((t - 0.95) / 0.25), m + pw * 0.6, y1 + ph * 0.52);
+    if (!leap) {
+      if (t > 0.15) this.caption(ctx, m + u * 0.25 - (1 - k1) * w, y1 + u * 0.2, 'SOMEONE GRABBED THE WRONG WORD…', u);
+      if (t < 0.9 && t > 0.2) ['Z', 'z', 'z'].forEach((z, i) => this.sfxText(ctx, m + pw * (0.62 + i * 0.08), y1 + ph * (0.42 - i * 0.09) - (t * 12 % 8), z, u * (0.7 - i * 0.12), 1, -10));
+      if (t > 0.95) this.bubble(ctx, m + pw * 0.3, y1 + ph * 0.36, pw * 0.5, this.yell, u * 1.05, pop((t - 0.95) / 0.25), m + pw * 0.6, y1 + ph * 0.52);
+    }
 
     if (t > 2.5) {
       const k2 = ease((t - 2.5) / 0.3);
