@@ -13,6 +13,7 @@ export class Input {
     this.mouseDebug = false; // set by main when ?debug=1: mouse clicks go to editor, not joystick
 
     addEventListener('keydown', e => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON')) return; // typing a name
       const k = KEYS[e.code];
       if (k) { this.want = { dx: k[0], dy: k[1] }; e.preventDefault(); }
       if (e.code === 'Space' || e.code === 'Enter') this.taps.push({ x: -1, y: -1, key: true });

@@ -43,11 +43,14 @@ export class Game {
     this.words = new Words(this.maze, this.phrases[0], L.word_spawn_candidates, [L.spawns.player], this.tun);
     this.fx.reset(); this.danger = 0; this.stun = 0; this.lastJobyTile = '';
     this.hideout = (L.landmarks.find(l => l.hideout) || {}).hideout || null;
-    this.hidden = 0; this.hideCd = 0; this.grace = 0;
+    this.hidden = 0; this.hideCd = 0; this.grace = 0; this.clock = 0;
     this.player.atCenter = () => this.tryEnterHideout();
   }
 
-  set(state) { this.state = state; this.st = 0; this.button = null; }
+  set(state) {
+    this.state = state; this.st = 0; this.button = null;
+    if (this.onState) this.onState(state);
+  }
   say(text, color = '#ffd23a') { this.toast = { text, color, t: 1.6 }; }
 
   wakeJoby() {
@@ -79,6 +82,7 @@ export class Game {
         break;
 
       case 'play': {
+        this.clock += dt;
         this.follow(dt);
         if (this.hideCd > 0) this.hideCd -= dt;
         if (this.grace > 0) this.grace -= dt;
@@ -111,7 +115,7 @@ export class Game {
           if (this.phase === 1 && this.joby.awake) this.joby.speedUp();
           if (this.words.done) {
             if (this.phase === 0) { this.set('reveal'); this.comic = new ComicReveal(this.art, this.lines); }
-            else { this.set('wincut'); this.melt = new MeltScene(this.art, this.lines); music.stop(); }
+            else { this.finalMs = Math.round(this.clock * 1000); this.set('wincut'); this.melt = new MeltScene(this.art, this.lines); music.stop(); }
             return;
           }
         } else if (ev === 'wrong') {
@@ -177,7 +181,6 @@ export class Game {
 
       case 'win':
         this.cam.ease(this.maze.W * this.maze.T / 2, this.maze.H * this.maze.T / 2, 1, Math.min(1, dt * 3));
-        for (const t of taps) if (t.key || hit(this.button, t)) this.begin();
         break;
     }
   }
@@ -209,7 +212,7 @@ export class Game {
 
     if (this.state === 'play' || this.state === 'caught') drawVignette(ctx, w, h, this.danger * (0.45 + 0.25 * this.pulse));
 
-    const jInfo = this.debug && this.joby.awake ? `JOBY ${this.joby.speed.toFixed(1)}` : '';
+    const jInfo = fmtClock(this.clock) + (this.debug && this.joby.awake ? `  ·  JOBY ${this.joby.speed.toFixed(1)}` : '');
     const u10 = Math.min(w, h * 0.66) / 10;
     if (this.state !== 'title') {
       this.slots = drawHUDScreen(ctx, w, h, this.safeTop, this.phrases[this.phase], this.words.next - this.fx.flying(), this.phase + 1, jInfo);
@@ -283,7 +286,7 @@ export class Game {
         break;
       }
       case 'win':
-        this.button = drawCard(ctx, w, h, { title: 'DAWGS OUT!', lines: ['TITS OUT FOR THE DAWGS ✓', 'Nasty Joby has melted.'], button: 'PLAY AGAIN', dim: 0.85, image: this.art.win });
+        drawCard(ctx, w, h, { title: 'DAWGS OUT!', lines: ['TITS OUT FOR THE DAWGS ✓'], dim: 0.85, image: this.art.win });
         break;
     }
   }
@@ -383,5 +386,7 @@ function drawHuh(ctx, maze, j, time) {
   ctx.font = `900 ${T * 0.55}px Impact,'Arial Black',sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.lineWidth = 5; ctx.strokeStyle = '#1b1b1b'; ctx.strokeText('?', x, y); ctx.fillStyle = '#fff'; ctx.fillText('?', x, y);
 }
+
+function fmtClock(s) { const m = Math.floor(s / 60); return `${m}:${(s - m * 60).toFixed(1).padStart(4, '0')}`; }
 
 function worldToScreen(cam, wx, wy) { return [(wx - cam.fx) * cam.s + cam.w / 2, (wy - cam.fy) * cam.s + cam.h / 2]; }

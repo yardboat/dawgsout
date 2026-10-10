@@ -3,6 +3,7 @@ import { Input } from './input.js';
 import { Game } from './game.js';
 import { setPortrait } from './cutscenes.js';
 import { sfx, music } from './audio.js';
+import { Leaderboard } from './leaderboard.js';
 
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -31,12 +32,19 @@ try {
   input.mouseDebug = debug;
   const game = new Game(level, phrases, lines, input, debug, bg, { joby: jobySprite, jobyPortrait, panels, walk, front, win, occluder, jobyCan });
   window.game = game; // handy in the console
+  const board = new Leaderboard({ onPlayAgain: () => game.begin() });
+  game.onState = st => {
+    board.setTitleButton(st === 'title');
+    if (st === 'win') setTimeout(() => board.showWin(game.finalMs), 600);
+    else if (st !== 'title' && board.isOpen()) board.hide();
+  };
+  game.onState(game.state);
   const probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden';
   document.body.appendChild(probe); game.safeTop = probe.offsetHeight || 0;
   const unlock = () => sfx.unlock();
   for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(ev, unlock, { capture: true, passive: true });
   window.__music = music;
-  if (debug) addEventListener('keydown', e => game.debugKey(e.code));
+  if (debug) addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT') game.debugKey(e.code); });
 
   let last = performance.now(), paused = false;
   document.addEventListener('visibilitychange', () => { paused = document.hidden; last = performance.now(); });
