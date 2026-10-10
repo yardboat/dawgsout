@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       if (!(ms >= 10000 && ms <= 3600000)) return res.status(400).json({ error: 'time out of range' });
       const at = Date.now();
       await put(`${PREFIX}${String(ms).padStart(8, '0')}_${encodeURIComponent(name)}_${at.toString(36)}.txt`, '1',
-        { access: 'public', addRandomSuffix: false, contentType: 'text/plain', ...auth });
+        { access: 'private', addRandomSuffix: false, contentType: 'text/plain', ...auth });
       const scores = await all();
       const rank = scores.findIndex(s => s.at === at && s.name === name && s.ms === ms) + 1;
       return res.status(200).json({ scores: scores.slice(0, 10), total: scores.length, rank, me: { ms, name, at } });
